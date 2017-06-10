@@ -1,0 +1,14 @@
+/home/dan/git/spoon/build/CMakeFiles/install/strip.dir
+/home/dan/git/spoon/build/CMakeFiles/install/local.dir
+/home/dan/git/spoon/build/CMakeFiles/test.dir
+/home/dan/git/spoon/build/CMakeFiles/edit_cache.dir
+/home/dan/git/spoon/build/CMakeFiles/rebuild_cache.dir
+/home/dan/git/spoon/build/CMakeFiles/install.dir
+/home/dan/git/spoon/build/CMakeFiles/list_install_components.dir
+/home/dan/git/spoon/build/src/CMakeFiles/install/strip.dir
+/home/dan/git/spoon/build/src/CMakeFiles/install/local.dir
+/home/dan/git/spoon/build/src/CMakeFiles/install.dir
+/home/dan/git/spoon/build/src/CMakeFiles/list_install_components.dir
+/home/dan/git/spoon/build/src/CMakeFiles/edit_cache.dir
+/home/dan/git/spoon/build/src/CMakeFiles/test.dir
+/home/dan/git/spoon/build/src/CMakeFiles/rebuild_cache.dir
