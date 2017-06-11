@@ -8,6 +8,8 @@
 #ifndef SRC_SPOON_DESERIALIZER_HPP_
 #define SRC_SPOON_DESERIALIZER_HPP_
 
+#include <spoon/unused_type.hpp>
+
 #include "external/mapbox/variant.hpp"
 
 #include <utility>
@@ -30,6 +32,34 @@
 
 
 
+#define SPOON_DESERIALIZER_REGISTER(engine, type, context)                                        \
+  namespace spoon {                                                                               \
+    template<>                                                                                    \
+    struct get_deserializer<type, context> {                                                      \
+      static auto call() -> decltype(engine) {                                                    \
+        return engine;                                                                            \
+      }                                                                                           \
+    };                                                                                            \
+  }                                                                                               \
+
+
+namespace spoon {
+
+  namespace detail {
+    constexpr auto fail_deserializer = [](auto& start, const auto& end, auto&& type, auto& ctx) -> bool { return false;};
+  } /* detail */
+
+  /**
+   *  get_deserializer on default we fail!
+   */
+  template<typename Type, typename Context = spoon::unused_type>
+  struct get_deserializer {
+    static auto call() -> decltype(detail::fail_deserializer) {
+      return detail::fail_deserializer;
+    }
+  };
+
+} /* spoon */
 
 namespace spoon { namespace deserializer {
 
@@ -254,6 +284,29 @@ namespace spoon { namespace deserializer {
 
 } /*namespace serializer*/
 } /*namespace spoon*/
+
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::byte_,          uint8_t,   spoon::unused_type)
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::byte_,          int8_t,    spoon::unused_type)
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::big::word16_,   uint16_t,  spoon::unused_type)
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::big::word16_,   int16_t,   spoon::unused_type)
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::big::word32_,   uint32_t,  spoon::unused_type)
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::big::word32_,   int32_t,   spoon::unused_type)
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::big::word64_,   uint64_t,  spoon::unused_type)
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::big::word64_,   int64_t,   spoon::unused_type)
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::big::float_,    float,     spoon::unused_type)
+SPOON_DESERIALIZER_REGISTER(spoon::deserializer::binary::big::double_,   double,    spoon::unused_type)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #endif /* SRC_SPOON_SERIALIZER_HPP_ */

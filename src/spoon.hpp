@@ -12,91 +12,79 @@
 #include <utility>
 #include <cstdint>
 
-#include <spoon/serializer.hpp>
+#include <spoon/unused_type.hpp>
+#include <spoon/serializer/binary.hpp>
+
+
+
 #include <spoon/deserializer.hpp>
+
 
 namespace spoon {
 
-  namespace detail {
-    constexpr auto fail_serializer = [](auto& sink, auto&& type, auto& ctx) -> bool { return false;};
+
+
+  auto serialize_with(const auto& engine, auto& sink, auto&& t, auto& ctx) -> bool {
+    return engine(sink, t, ctx);
   }
+
+  auto serialize_with(const auto& engine, auto& sink, auto&& t) -> bool  {
+   unused_type unused{};
+   return serialize_with(engine, sink, t, unused);
+  }
+
+
   /**
-   *  get_serializer on default we fail!
+   * Main interface for users
    */
-  template<typename Type, typename Context = void>
-  struct get_serializer {
-    static auto call() -> decltype(detail::fail_serializer) {
-    //  static_assert(false, "[ERROR] -------- Missing serializer for Type in"  );
-      return detail::fail_serializer;
-    }
-  };
-
-#define SPOON_SERIALIZER_REGISTER(engine, type, context)                      \
-    template<>                                                                \
-    struct get_serializer<type, context> {                                    \
-      static auto call() -> decltype(engine) {                                \
-        return engine;                                                        \
-      }                                                                       \
-    };                                                                        \
-
-
-  SPOON_SERIALIZER_REGISTER(serializer::binary::big::word16_, uint16_t, void)
-  SPOON_SERIALIZER_REGISTER(serializer::binary::big::word16_,  int16_t, void)
-
-  template<typename Type>
-  bool serialize(auto& sink, const auto& serializer, Type t) {
-   const auto unused = nullptr;
-   return serializer(sink, t, unused);
-  }
-
-  template<typename Type, typename Context>
-  bool serialize(auto& sink, const auto& serializer, Type t, Context& ctx) {
-   return serializer(sink, t, ctx);
-  }
-
-
-
-  template<typename Type, typename Context>
-  bool serialize(auto& sink, Type t, Context& ctx) {
-    const auto& serializer = get_serializer<Type, Context>::call();
+  auto serialize(auto& sink, auto&& t, auto& ctx) -> bool {
+    using t_type   = typename std::decay<decltype(t)>   ::type;
+    using ctx_type = typename std::decay<decltype(ctx)> ::type;
+    const auto& serializer = get_serializer<t_type, ctx_type>::call();
     return serializer(sink, t, ctx);
   }
 
-
-  template<typename Type>
-  bool serialize(auto& sink, Type t) {
-   const auto unused = nullptr;
+  auto serialize(auto& sink, auto&& t) -> bool {
+   unused_type unused{};
    return serialize(sink, t, unused);
   }
 
 
 
 
+//-------------------------------------------------------------------------------------------------
 
 
 
 
-
-
-
-  template<typename Type>
-  bool deserialize(auto& start, const auto& end, const auto& deserializer, Type& t) {
-   const auto unused = nullptr;
-   return deserializer(start, end, t, unused);
+  auto deserialize_with(const auto& engine, auto& start, const auto& end, auto& t, auto& ctx) -> bool{
+    return engine(start, end, t, ctx);
   }
 
-  template<typename Type, typename Context>
-  bool deserialize(auto& start, const auto& end, const auto& deserializer, Type& t, Context& ctx) {
-   return deserializer(start, end, t, ctx);
+  auto deserialize_with(const auto& engine, auto& start, const auto& end, auto& t) -> bool{
+    const unused_type unused{};
+    return deserialize_with(engine, start, end, t, unused);
   }
 
 
+
+  auto deserialize(auto& start, const auto& end, auto& t, auto& ctx) -> bool {
+    using t_type   = typename std::decay<decltype(t)>   ::type;
+    using ctx_type = typename std::decay<decltype(ctx)> ::type;
+    const auto& deserializer = get_deserializer<t_type, ctx_type>::call();
+    return deserializer(start, end, t, ctx);
+  }
+
+  auto deserialize(auto& start, const auto& end, auto& t) -> bool {
+    const unused_type unused{};
+   return deserialize(start, end, t, unused);
+  }
 
 
 
 }/*namespace spoon*/
 
-
+#include <spoon/serializer/any.hpp>
 
 
 #endif /* SRC_LIB_SPOON_HPP_ */

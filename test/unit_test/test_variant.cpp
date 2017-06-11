@@ -25,16 +25,17 @@
 #include <iostream>
 
 #include <spoon.hpp>
+/*
 #include <boost/spirit/include/karma.hpp>
 #include <boost/spirit/include/karma_binary.hpp>
 #include <boost/variant.hpp>
-
+*/
 BOOST_AUTO_TEST_SUITE( test_spoon_variant )
 
 
 
 BOOST_AUTO_TEST_CASE( test_spoon_variant_simple_1 ) {
-
+/*
 //using variant_t = boost::variant<bool, uint32_t, int16_t, double>;
   using variant_t = boost::variant<int32_t, int16_t>;
 
@@ -52,7 +53,7 @@ BOOST_TEST(success == true);
     BOOST_TEST(binary_data[1] == 0x00);
     BOOST_TEST(binary_data[2] == 0x05);
     BOOST_TEST(binary_data[3] == 0x39);
-
+*/
 }
 
 
@@ -61,20 +62,26 @@ BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
   std::vector<uint8_t> binary_data{};
 
   using varinat_t = mapbox::util::variant<bool, uint32_t, double>;
+
   {
     using namespace spoon::serializer;
+
     varinat_t var = uint32_t{1337};
+   // decltype(auto) engine = any_(binary::bool_, binary::big::word32_, binary::big::double_);
+    decltype(auto) engine = any_type_(bool{}, uint32_t{}, double{});
+   // decltype(auto) engine = any_type_(varinat_t);
 
-
-    auto success = spoon::serialize(binary_data, any_(binary::bool_, binary::big::word32_, binary::big::double_), var);
+    auto success = spoon::serialize_with(engine, binary_data, var);
     BOOST_TEST(success == true);
 
-    BOOST_TEST( binary_data.size() == decltype(binary_data)::size_type{4} );
-    BOOST_TEST(binary_data[3] == 0x00);
-    BOOST_TEST(binary_data[2] == 0x00);
-    BOOST_TEST(binary_data[1] == 0x05);
-    BOOST_TEST(binary_data[0] == 0x39);
+    BOOST_TEST( binary_data.size() == size_t{4} );
+    BOOST_TEST(binary_data[0] == 0x00);
+    BOOST_TEST(binary_data[1] == 0x00);
+    BOOST_TEST(binary_data[2] == 0x05);
+    BOOST_TEST(binary_data[3] == 0x39);
   }
+
+
 
 
 

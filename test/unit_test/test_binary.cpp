@@ -27,6 +27,35 @@
 #include <spoon.hpp>
 
 
+#define SPOON_TEST_BINARY_SIMPLE_HELPER(name, attribute_type, attribute_value)                         \
+                                                                                                       \
+BOOST_AUTO_TEST_CASE( test_full_seserialize_test_##name ) {                                            \
+                                                                                                       \
+  {                                                                                                    \
+    attribute_type  value_to_serialize = attribute_value;                                              \
+    attribute_type  value_to_deserialize{};                                                            \
+                                                                                                       \
+    const size_t expected_binary_size  = sizeof(attribute_type);                                      \
+                                                                                                       \
+    std::vector<uint8_t> binary_data{};                                                                \
+    auto successful_serialized = spoon::serialize(binary_data, value_to_serialize);                    \
+                                                                                                       \
+    BOOST_TEST( successful_serialized == true,              "failed to serialize ");                   \
+    BOOST_TEST( binary_data.size() == expected_binary_size, "failed serialized length is wrong" );     \
+                                                                                                       \
+    auto begin = binary_data.begin();                                                                  \
+    auto end   = binary_data.end();                                                                    \
+                                                                                                       \
+    auto successful_deserialized = spoon::deserialize(begin, end, value_to_deserialize);               \
+    BOOST_TEST(successful_deserialized == true,     "failed to successful deserialized");              \
+                                                                                                       \
+    BOOST_TEST((begin == end), " failed deserialization iterator not at the end" );                    \
+                                                                                                       \
+    BOOST_TEST(value_to_serialize == value_to_deserialize, " failed attribute must be same ");         \
+  }                                                                                                    \
+                                                                                                       \
+}                                                                                                      \
+
 
 #define SPOON_TEST_BINARY_HELPER(name, engine, attribute_type, attribute_value, binary_size)           \
                                                                                                        \
@@ -41,7 +70,7 @@ BOOST_AUTO_TEST_CASE( test_full_seserialize_test_##name ) {                     
     const size_t expected_binary_size  = binary_size;                                                  \
                                                                                                        \
     std::vector<uint8_t> binary_data{};                                                                \
-    auto successful_serialized = spoon::serialize(binary_data, serializer, value_to_serialize);        \
+    auto successful_serialized = spoon::serialize_with(serializer, binary_data, value_to_serialize);   \
                                                                                                        \
     BOOST_TEST( successful_serialized == true,              "failed to serialize ");                   \
     BOOST_TEST( binary_data.size() == expected_binary_size, "failed serialized length is wrong" );     \
@@ -49,7 +78,7 @@ BOOST_AUTO_TEST_CASE( test_full_seserialize_test_##name ) {                     
     auto begin = binary_data.begin();                                                                  \
     auto end   = binary_data.end();                                                                    \
                                                                                                        \
-    auto successful_deserialized = spoon::deserialize(begin, end, deserializer, value_to_deserialize); \
+    auto successful_deserialized = spoon::deserialize_with(deserializer, begin, end, value_to_deserialize); \
     BOOST_TEST(successful_deserialized == true,     "failed to successful deserialized");              \
                                                                                                        \
     BOOST_TEST((begin == end), " failed deserialization iterator not at the end" );                    \
@@ -71,7 +100,7 @@ BOOST_AUTO_TEST_CASE( test_serialize_bool_pos ) {
     std::vector<uint8_t> binary_data{};
 
 
-    auto success = spoon::serialize(binary_data, byte_, my_bool);
+    auto success = spoon::serialize_with(byte_, binary_data,  my_bool);
     BOOST_TEST(success == true);
 
     BOOST_TEST( binary_data.size() == decltype(binary_data)::size_type{1} );
@@ -84,7 +113,7 @@ BOOST_AUTO_TEST_CASE( test_serialize_bool_pos ) {
     std::vector<uint8_t> binary_data{};
 
 
-    auto success = spoon::serialize(binary_data, byte_, my_bool);
+    auto success = spoon::serialize_with(byte_, binary_data, my_bool);
     BOOST_TEST(success == true);
 
     BOOST_TEST( binary_data.size() == decltype(binary_data)::size_type{1} );
@@ -100,7 +129,7 @@ BOOST_AUTO_TEST_CASE( test_serialize_bool_pos ) {
       std::vector<uint8_t> binary_data{};
 
 
-      auto success = spoon::serialize(binary_data, big::word32_, my);
+      auto success = spoon::serialize_with(big::word32_, binary_data, my);
       BOOST_TEST(success == true);
 
       BOOST_TEST( binary_data.size() == decltype(binary_data)::size_type{4} );
@@ -126,7 +155,7 @@ BOOST_AUTO_TEST_CASE( test_deserialize_bool_pos ) {
     auto begin = binary_data.begin();
     auto end   = binary_data.end();
 
-    auto success = spoon::deserialize(begin, end, byte_, my_bool);
+    auto success = spoon::deserialize_with(byte_, begin, end, my_bool);
     BOOST_TEST(success == true);
 
     BOOST_TEST((begin == end), " failed iterator not same" );
@@ -142,7 +171,7 @@ BOOST_AUTO_TEST_CASE( test_deserialize_bool_pos ) {
      auto begin = binary_data.begin();
      auto end   = binary_data.end();
 
-     auto success = spoon::deserialize(begin, end, byte_, my_bool);
+     auto success = spoon::deserialize_with(byte_, begin, end, my_bool);
      BOOST_TEST(success == true);
 
      BOOST_TEST(( begin == end), "" );
@@ -168,7 +197,7 @@ BOOST_AUTO_TEST_CASE( test_full_seserialize_test ) {
     const size_t expected_binary_size  = 1;
 
     std::vector<uint8_t> binary_data{};
-    auto successful_serialized = spoon::serialize(binary_data, serializer, value_to_serialize);
+    auto successful_serialized = spoon::serialize_with(serializer, binary_data, value_to_serialize);
 
     BOOST_TEST( successful_serialized == true,              "failed to serialize ");
     BOOST_TEST( binary_data.size() == expected_binary_size, "failed serialized length is wrong" );
@@ -178,7 +207,7 @@ BOOST_AUTO_TEST_CASE( test_full_seserialize_test ) {
     auto begin = binary_data.begin();
     auto end   = binary_data.end();
 
-    auto successful_deserialized = spoon::deserialize(begin, end, deserializer, value_to_deserialize);
+    auto successful_deserialized = spoon::deserialize_with(deserializer, begin, end, value_to_deserialize);
     BOOST_TEST(successful_deserialized == true,     "failed to successful deserialized");
 
     BOOST_TEST((begin == end), " failed deserialization iterator not at the end" );
@@ -189,6 +218,32 @@ BOOST_AUTO_TEST_CASE( test_full_seserialize_test ) {
 }
 
 
+
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_1, uint8_t,    0)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_2, uint8_t,    127)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_3, uint8_t,    255)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_4, int8_t,     0)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_5, int8_t,     -1)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_6, int8_t,     -127)
+
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_1, uint16_t,    0)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_2, uint16_t,    32999)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_3, uint16_t,    65000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_4, int16_t,    -1)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_5, int16_t,    -31000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_6, int16_t,    -127)
+
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word32_1, uint32_t,    800000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word32_2, uint32_t,     42)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word32_3, int32_t,    -127)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word32_4, int32_t,    -800000)
+
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word64_1, uint64_t,    99800000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word64_2, int64_t,    -99800000)
+
+
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_float, float,    -3.14f)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_double, double,    -3.14d)
 
 // word8_
 SPOON_TEST_BINARY_HELPER(word8_1, binary::big::word8_, uint8_t, 0,     1)
