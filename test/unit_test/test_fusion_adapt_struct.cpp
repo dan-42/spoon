@@ -81,8 +81,8 @@ BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
     using namespace spoon::serializer;
 
     varinat_t var = uint32_t{1337};
-    decltype(auto) engine = any_( binary::big::double_,  binary::big::word32_, binary::bool_);
-    //decltype(auto) engine = any_type_(bool{}, uint32_t{}, double{});
+    //decltype(auto) engine = any_( binary::big::double_,  binary::big::word32_, binary::bool_);
+    decltype(auto) engine = any_type_(bool{}, uint32_t{}, double{});
     auto success = spoon::serialize_with(engine, binary_data, var);
     BOOST_TEST(success == true);
 

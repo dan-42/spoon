@@ -13,11 +13,12 @@
 #include <cstdint>
 
 #include <spoon/unused_type.hpp>
+
+#include <spoon/serializer/get.hpp>
+#include <spoon/deserializer/get.hpp>
+
 #include <spoon/serializer/binary.hpp>
-
-
-
-#include <spoon/deserializer.hpp>
+#include <spoon/deserializer/binary.hpp>
 
 
 namespace spoon {
@@ -62,7 +63,7 @@ namespace spoon {
   }
 
   auto deserialize_with(const auto& engine, auto& start, const auto& end, auto& t) -> bool{
-    const unused_type unused{};
+    unused_type unused{};
     return deserialize_with(engine, start, end, t, unused);
   }
 
@@ -85,6 +86,11 @@ namespace spoon {
 }/*namespace spoon*/
 
 #include <spoon/serializer/any.hpp>
+#include <spoon/serializer/seq.hpp>
+#include <spoon/serializer/repeat.hpp>
 
+#include <spoon/deserializer/any.hpp>
+#include <spoon/deserializer/seq_.hpp>
+#include <spoon/deserializer/repeat.hpp>
 
 #endif /* SRC_LIB_SPOON_HPP_ */
