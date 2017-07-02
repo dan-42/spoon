@@ -20,7 +20,7 @@ if (CMAKE_BUILD_TYPE MATCHES "RELEASE")
 endif()
 
 list (INSERT LIB_SPOON_COMPILE_FLAGS 0
-                --std=c++14
+               # --std=c++14
                 -Wall
                 -Werror
                 -Wno-unused-variable
@@ -39,9 +39,9 @@ endif()
 
 
 # pre
-#hunter_add_package(lib-cpp-pre)
-#find_package(lib-cpp-pre REQUIRED)
-#include_directories(AFTER ${LIB_CPP_PRE_INCLUDE_DIRS})
+hunter_add_package(lib-cpp-pre)
+find_package(lib-cpp-pre REQUIRED)
+include_directories(AFTER ${LIB_CPP_PRE_INCLUDE_DIRS})
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 

@@ -13,59 +13,69 @@
 
 #include "external/mapbox/variant.hpp"
 
+#include <pre/type_traits/function_traits.hpp>
+
 #include <utility>
 #include <cstdint>
 
 
 namespace spoon { namespace deserializer {
 
+ namespace detail {
 
-  template<typename Pass, typename Engine, typename Start, typename End, typename Ctx>
-  struct variant_visitor {
-    variant_visitor(Pass& pass, const Engine& engine, Start& start, const End& end, Ctx& ctx) :
-                                    pass_(pass), engine_(engine), start_(start), end_(end), ctx_(ctx){}
-
-
-    template<typename Attr>
-    void operator()(Attr& attr) const     {
-
-      std::cerr << "[INFO] deserializer variant_visitor "
-                << "  Attr: " << boost::typeindex::type_id< Attr >().pretty_name()
-                << "  Ctx: " << boost::typeindex::type_id< Ctx >().pretty_name()
-                << "  Engine" << boost::typeindex::type_id< Engine >().pretty_name()
-                << '\n' ;
+    template<typename Pass, typename Engine, typename Start, typename End, typename Ctx>
+    struct variant_visitor {
+      variant_visitor(Pass& pass, const Engine& engine, Start& start, const End& end, Ctx& ctx) :
+                                      pass_(pass), engine_(engine), start_(start), end_(end), ctx_(ctx){}
 
 
-      auto& itr = start_;
-      pass_ = engine_(itr, end_, attr, ctx_);
-      if(pass_) {
-        start_ = itr;
+      template<typename Attr>
+      void operator()(Attr& attr) const     {
+
+        std::cerr << "[INFO] deserializer variant_visitor "
+                  << "  Attr: " << boost::typeindex::type_id< Attr >().pretty_name()
+                  << "  Ctx: " << boost::typeindex::type_id< Ctx >().pretty_name()
+                  << "  Engine" << boost::typeindex::type_id< Engine >().pretty_name()
+                  << '\n' ;
+
+
+        auto& itr = start_;
+        pass_ = engine_(itr, end_, attr, ctx_);
+        if(pass_) {
+          start_ = itr;
+        }
       }
-    }
 
-    Pass& pass_;
-    const Engine& engine_;
-    Start& start_;
-    const End& end_;
-    Ctx& ctx_;
+      Pass& pass_;
+      const Engine& engine_;
+      Start& start_;
+      const End& end_;
+      Ctx& ctx_;
 
-  };
+    };
+
+ } //detail
 
 
   template<typename... Ss>
-  constexpr auto any_(Ss... ss) {
+  constexpr auto any(Ss... ss) {
 
     const auto result = [ ss... ](auto& start, const auto& end, auto& variant_attr, auto& ctx)-> bool {
 
                         bool pass = false;
                         size_t cnt = 0;
-                        ::spoon::detail::for_each_args([&cnt, &pass, &start, &end, &variant_attr, &ctx ](const auto& deserializer) {
-                                                      std::cout << " any cnt " << cnt << std::endl;
-                                                      cnt++;
+                        ::spoon::detail::for_each_args([&cnt, &pass, &start, &end, &variant_attr, &ctx ](auto deserializer) {
+
                                                         if(!pass && start != end) {
+                                                          using deserialzier_type =  std::decay_t<decltype(deserializer)>;
+                                                          using ctx_type          =  std::decay_t<decltype(ctx)>;
+                                                          using attr_type         =  typename spoon::deserializer_attribute<deserialzier_type, ctx_type>::type;
 
-                                                          pass = deserializer(start, end, variant_attr, ctx);
-
+                                                          attr_type attr{};
+                                                          pass = deserializer(start, end, attr, ctx);
+                                                          if(pass) {
+                                                           // variant_attr = attr;
+                                                          }
 
                                                         }
                                                     }, ss...);

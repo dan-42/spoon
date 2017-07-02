@@ -59,17 +59,17 @@ namespace spoon { namespace serializer {
 
 
   template<typename... Ss>
-  const auto any_(Ss... ss) {
+  const auto any(Ss... ss) {
 
     constexpr auto result = [ ss... ](auto& sink, auto&& variant_attr, auto& ctx) -> bool {
 
                                   bool pass           = false;
-                                  const auto visitor_handler = [ &pass, &sink, &ctx, ss...](auto attr) {
+                                  const auto visitor_handler = [ &pass, &sink, &ctx, ss...](auto&& attr) {
 
-                                        const auto any_pass = [&pass, &sink, &attr, &ctx] (auto engine) -> void {
+                                        const auto any_pass = [&pass, &sink, attr, &ctx] (auto engine) -> void {
                                                               if(!pass) {
-
-                                                                 pass = engine(sink, attr, ctx);
+                                                                 auto tmp = attr;
+                                                                 pass = engine(sink, std::move(tmp), ctx);
                                                               }
                                                             };
 
@@ -87,7 +87,7 @@ namespace spoon { namespace serializer {
 
 
   template<typename... Ss>
-    auto any_type_(Ss... ss) {
+    auto any_type(Ss... ss) {
 
       auto result = [ ss... ](auto& sink, auto&& attr, auto& ctx) -> bool {
 

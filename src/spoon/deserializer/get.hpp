@@ -26,6 +26,14 @@ namespace spoon {
     }
   };
 
+  /**
+   * map an engine to an attribute type
+   */
+  template<typename Engine, typename Context = spoon::unused_type>
+  struct deserializer_attribute {
+     using type = nullptr_t;
+  };
+
 } /* spoon */
 
 

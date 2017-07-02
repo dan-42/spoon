@@ -35,10 +35,10 @@ BOOST_AUTO_TEST_CASE( test_full_seserialize_test_##name ) {                     
     attribute_type  value_to_serialize = attribute_value;                                              \
     attribute_type  value_to_deserialize{};                                                            \
                                                                                                        \
-    const size_t expected_binary_size  = sizeof(attribute_type);                                      \
+    const size_t expected_binary_size  = sizeof(attribute_type);                                       \
                                                                                                        \
     std::vector<uint8_t> binary_data{};                                                                \
-    auto successful_serialized = spoon::serialize(binary_data, value_to_serialize);                    \
+    auto successful_serialized = spoon::serialize(binary_data, attribute_type{attribute_value});       \
                                                                                                        \
     BOOST_TEST( successful_serialized == true,              "failed to serialize ");                   \
     BOOST_TEST( binary_data.size() == expected_binary_size, "failed serialized length is wrong" );     \
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE( test_full_seserialize_test_##name ) {                     
 
 BOOST_AUTO_TEST_SUITE( test_spoon_binary )
 
-BOOST_AUTO_TEST_CASE( test_serialize_bool_pos ) {
+BOOST_AUTO_TEST_CASE( test_serialize_bool8pos ) {
 
   using namespace spoon::serializer::binary;
   {
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE( test_serialize_bool_pos ) {
     std::vector<uint8_t> binary_data{};
 
 
-    auto success = spoon::serialize_with(byte_, binary_data,  my_bool);
+    auto success = spoon::serialize_with(bool8, binary_data,  my_bool);
     BOOST_TEST(success == true);
 
     BOOST_TEST( binary_data.size() == decltype(binary_data)::size_type{1} );
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE( test_serialize_bool_pos ) {
     std::vector<uint8_t> binary_data{};
 
 
-    auto success = spoon::serialize_with(byte_, binary_data, my_bool);
+    auto success = spoon::serialize_with(bool8, binary_data, my_bool);
     BOOST_TEST(success == true);
 
     BOOST_TEST( binary_data.size() == decltype(binary_data)::size_type{1} );
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE( test_serialize_bool_pos ) {
       std::vector<uint8_t> binary_data{};
 
 
-      auto success = spoon::serialize_with(big::word32_, binary_data, my);
+      auto success = spoon::serialize_with(big::uint32, binary_data, my);
       BOOST_TEST(success == true);
 
       BOOST_TEST( binary_data.size() == decltype(binary_data)::size_type{4} );
@@ -143,9 +143,9 @@ BOOST_AUTO_TEST_CASE( test_serialize_bool_pos ) {
 
 
 
-BOOST_AUTO_TEST_CASE( test_deserialize_bool_pos ) {
+BOOST_AUTO_TEST_CASE( test_deserialize_bool8pos ) {
 
-  using spoon::deserializer::binary::byte_;
+  using spoon::deserializer::binary::bool8;
   {
     bool my_bool = false;
 
@@ -155,7 +155,7 @@ BOOST_AUTO_TEST_CASE( test_deserialize_bool_pos ) {
     auto begin = binary_data.begin();
     auto end   = binary_data.end();
 
-    auto success = spoon::deserialize_with(byte_, begin, end, my_bool);
+    auto success = spoon::deserialize_with(bool8, begin, end, my_bool);
     BOOST_TEST(success == true);
 
     BOOST_TEST((begin == end), " failed iterator not same" );
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE( test_deserialize_bool_pos ) {
      auto begin = binary_data.begin();
      auto end   = binary_data.end();
 
-     auto success = spoon::deserialize_with(byte_, begin, end, my_bool);
+     auto success = spoon::deserialize_with(bool8, begin, end, my_bool);
      BOOST_TEST(success == true);
 
      BOOST_TEST(( begin == end), "" );
@@ -189,8 +189,8 @@ BOOST_AUTO_TEST_CASE( test_deserialize_bool_pos ) {
 BOOST_AUTO_TEST_CASE( test_full_seserialize_test ) {
 
   {
-    decltype(auto)  serializer   = spoon::serializer::binary::byte_;
-    decltype(auto)  deserializer = spoon::deserializer::binary::byte_;
+    decltype(auto)  serializer   = spoon::serializer::binary::bool8;
+    decltype(auto)  deserializer = spoon::deserializer::binary::bool8;
     bool   value_to_serialize = false;
     bool  value_to_deserialize{};
 
@@ -219,79 +219,80 @@ BOOST_AUTO_TEST_CASE( test_full_seserialize_test ) {
 
 
 
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_1, uint8_t,    0)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_2, uint8_t,    127)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_3, uint8_t,    255)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_4, int8_t,     0)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_5, int8_t,     -1)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word8_6, int8_t,     -127)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint8_1, uint8_t,    0)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint8_2, uint8_t,    127)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint8_3, uint8_t,    255)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint8_4, int8_t,     0)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint8_5, int8_t,     -1)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint8_6, int8_t,     -127)
 
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_1, uint16_t,    0)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_2, uint16_t,    32999)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_3, uint16_t,    65000)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_4, int16_t,    -1)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_5, int16_t,    -31000)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word16_6, int16_t,    -127)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint16_1, uint16_t,    0)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint16_2, uint16_t,    32999)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint16_3, uint16_t,    65000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint16_4, int16_t,    -1)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint16_5, int16_t,    -31000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint16_6, int16_t,    -127)
 
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word32_1, uint32_t,    800000)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word32_2, uint32_t,     42)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word32_3, int32_t,    -127)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word32_4, int32_t,    -800000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint32_1, uint32_t,    800000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint32_2, uint32_t,     42)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint32_3, int32_t,    -127)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint32_4, int32_t,    -800000)
 
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word64_1, uint64_t,    99800000)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_word64_2, int64_t,    -99800000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint64_1, uint64_t,    99800000)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_uint64_2, int64_t,    -99800000)
 
-
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_float, float,    -3.14f)
-SPOON_TEST_BINARY_SIMPLE_HELPER(simple_double, double,    -3.14d)
-
-// word8_
-SPOON_TEST_BINARY_HELPER(word8_1, binary::big::word8_, uint8_t, 0,     1)
-SPOON_TEST_BINARY_HELPER(word8_2, binary::big::word8_, uint8_t, 23,    1)
-SPOON_TEST_BINARY_HELPER(word8_3, binary::big::word8_, uint8_t, 128,   1)
-SPOON_TEST_BINARY_HELPER(word8_4, binary::big::word8_, uint8_t, 255,   1)
-SPOON_TEST_BINARY_HELPER(word8_5, binary::big::word8_,  int8_t, -1,    1)
-SPOON_TEST_BINARY_HELPER(word8_6, binary::big::word8_,  int8_t, -127,  1)
-
-//word16
-SPOON_TEST_BINARY_HELPER(word16_1, binary::big::word16_, uint16_t, 0,       2)
-SPOON_TEST_BINARY_HELPER(word16_2, binary::big::word16_, uint16_t, 23,      2)
-SPOON_TEST_BINARY_HELPER(word16_3, binary::big::word16_, uint16_t, 65534,   2)
-SPOON_TEST_BINARY_HELPER(word16_4, binary::big::word16_, uint16_t, 65535,   2)
-SPOON_TEST_BINARY_HELPER(word16_5, binary::big::word16_, uint16_t, -1   ,   2)
-SPOON_TEST_BINARY_HELPER(word16_6, binary::big::word16_, uint16_t, -32001,  2)
-SPOON_TEST_BINARY_HELPER(word16_7, binary::big::word16_,  int16_t, -32001,  2)
-
-//word24
-SPOON_TEST_BINARY_HELPER(word24_1, binary::big::word24_, uint32_t, 0,       3)
-SPOON_TEST_BINARY_HELPER(word24_2, binary::big::word24_, uint32_t, 23,      3)
-SPOON_TEST_BINARY_HELPER(word24_3, binary::big::word24_, uint32_t, 0x0FFFFF,3)
-SPOON_TEST_BINARY_HELPER(word24_4, binary::big::word24_, uint32_t, 0xFFFFFF,3)
-
-//word32
-SPOON_TEST_BINARY_HELPER(word32_1, binary::big::word32_, uint32_t, 0,       4)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_float,   float,      -3.14f)
+SPOON_TEST_BINARY_SIMPLE_HELPER(simple_double,  double,     -3.14d)
 
 
-//word40
-SPOON_TEST_BINARY_HELPER(word40_1, binary::big::word40_, uint64_t, 0,       5)
+
+// uint8_
+SPOON_TEST_BINARY_HELPER(uint8_1, binary::uint8, uint8_t, 0,     1)
+SPOON_TEST_BINARY_HELPER(uint8_2, binary::uint8, uint8_t, 23,    1)
+SPOON_TEST_BINARY_HELPER(uint8_3, binary::uint8, uint8_t, 128,   1)
+SPOON_TEST_BINARY_HELPER(uint8_4, binary::uint8, uint8_t, 255,   1)
+SPOON_TEST_BINARY_HELPER(uint8_5, binary::int8,  int8_t, -1,    1)
+SPOON_TEST_BINARY_HELPER(uint8_6, binary::int8,  int8_t, -127,  1)
+
+//uint16
+SPOON_TEST_BINARY_HELPER(uint16_1, binary::big::uint16, uint16_t, 0,       2)
+SPOON_TEST_BINARY_HELPER(uint16_2, binary::big::uint16, uint16_t, 23,      2)
+SPOON_TEST_BINARY_HELPER(uint16_3, binary::big::uint16, uint16_t, 65534,   2)
+SPOON_TEST_BINARY_HELPER(uint16_4, binary::big::uint16, uint16_t, 65535,   2)
+SPOON_TEST_BINARY_HELPER(uint16_5, binary::big::uint16, uint16_t, -1   ,   2)
+SPOON_TEST_BINARY_HELPER(uint16_6, binary::big::uint16, uint16_t, -32001,  2)
+SPOON_TEST_BINARY_HELPER(uint16_7, binary::big::int16,  int16_t, -32001,  2)
+
+//uint24
+SPOON_TEST_BINARY_HELPER(uint24_1, binary::big::uint24, uint32_t, 0,       3)
+SPOON_TEST_BINARY_HELPER(uint24_2, binary::big::uint24, uint32_t, 23,      3)
+SPOON_TEST_BINARY_HELPER(uint24_3, binary::big::uint24, uint32_t, 0x0FFFFF,3)
+SPOON_TEST_BINARY_HELPER(uint24_4, binary::big::uint24, uint32_t, 0xFFFFFF,3)
+
+//uint32
+SPOON_TEST_BINARY_HELPER(uint32_1, binary::big::uint32, uint32_t, 0,       4)
 
 
-//word48
-SPOON_TEST_BINARY_HELPER(word48_1, binary::big::word48_, uint64_t, 0,       6)
+//uint40
+SPOON_TEST_BINARY_HELPER(uint40_1, binary::big::uint40, uint64_t, 0,       5)
 
 
-//word56
-SPOON_TEST_BINARY_HELPER(word56_1, binary::big::word56_, uint64_t, 0,       7)
+//uint48
+SPOON_TEST_BINARY_HELPER(uint48_1, binary::big::uint48, uint64_t, 0,       6)
 
 
-//word64
-SPOON_TEST_BINARY_HELPER(word64_1, binary::big::word64_, uint64_t, 0,       8)
+//uint56
+SPOON_TEST_BINARY_HELPER(uint56_1, binary::big::uint56, uint64_t, 0,       7)
+
+
+//uint64
+SPOON_TEST_BINARY_HELPER(uint64_1, binary::big::uint64, uint64_t, 0,       8)
 
 
 //float
-SPOON_TEST_BINARY_HELPER(float_1, binary::big::float_, float, 3.14f,      4)
+SPOON_TEST_BINARY_HELPER(float_1, binary::big::float32, float, 3.14f,      4)
 
 //double_
-SPOON_TEST_BINARY_HELPER(double_1, binary::big::double_, double, 3.14,      8)
+SPOON_TEST_BINARY_HELPER(double_1, binary::big::float64, double, 3.14,      8)
 
 BOOST_AUTO_TEST_SUITE_END()

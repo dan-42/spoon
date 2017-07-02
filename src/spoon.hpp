@@ -12,85 +12,46 @@
 #include <utility>
 #include <cstdint>
 
-#include <spoon/unused_type.hpp>
 
-#include <spoon/serializer/get.hpp>
-#include <spoon/deserializer/get.hpp>
+#include <spoon/type/unused.hpp>
+#include <spoon/traits/is_engine.hpp>
+#include <spoon/traits/is_supported_engine_type.hpp>
 
-#include <spoon/serializer/binary.hpp>
-#include <spoon/deserializer/binary.hpp>
+#include <spoon/binary.hpp>
+#include <spoon/seq.hpp>
+#include <spoon/any.hpp>
 
 
 namespace spoon {
 
-
-
-  auto serialize_with(const auto& engine, auto& sink, auto&& t, auto& ctx) -> bool {
-    return engine(sink, t, ctx);
-  }
-
-  auto serialize_with(const auto& engine, auto& sink, auto&& t) -> bool  {
-   unused_type unused{};
-   return serialize_with(engine, sink, t, unused);
+  constexpr auto serialize(auto& sink, auto&& attr, const auto& engine, auto& ctx) -> bool {
+    static_assert(traits::is_engine(engine)          == true, "ERROR provided variable engine is not a spoon::engine type");
+    static_assert(traits::is_supported(engine, attr) == true, "ERROR provided attr is not supported by the provided engine");
+    using engine_type = typename std::decay<decltype(engine)>::type;
+    return engine_type::serialize(sink, std::move(attr), ctx);;
   }
 
 
-  /**
-   * Main interface for users
-   */
-  auto serialize(auto& sink, auto&& t, auto& ctx) -> bool {
-    using t_type   = typename std::decay<decltype(t)>   ::type;
-    using ctx_type = typename std::decay<decltype(ctx)> ::type;
-    const auto& serializer = get_serializer<t_type, ctx_type>::call();
-    return serializer(sink, t, ctx);
+  constexpr auto serialize(auto& sink, auto&& attr, const auto& engine) -> bool  {
+   return serialize(sink, std::move(attr), engine, spoon::type::unused);
   }
-
-  auto serialize(auto& sink, auto&& t) -> bool {
-   unused_type unused{};
-   return serialize(sink, t, unused);
-  }
-
-
-
 
 //-------------------------------------------------------------------------------------------------
 
-
-
-
-  auto deserialize_with(const auto& engine, auto& start, const auto& end, auto& t, auto& ctx) -> bool{
-    return engine(start, end, t, ctx);
+  constexpr auto deserialize(auto& start, const auto& end, auto& attr, const auto& engine, auto& ctx) -> bool {
+    static_assert(traits::is_engine(engine)          == true, "ERROR provided variable engine is not a spoon::engine type");
+    static_assert(traits::is_supported(engine, attr) == true, "ERROR provided attr is not supported by the provided engine");
+    using engine_type = typename std::decay<decltype(engine)>::type;
+    return engine_type::deserialize(start, end, attr, ctx);
   }
 
-  auto deserialize_with(const auto& engine, auto& start, const auto& end, auto& t) -> bool{
-    unused_type unused{};
-    return deserialize_with(engine, start, end, t, unused);
-  }
-
-
-
-  auto deserialize(auto& start, const auto& end, auto& t, auto& ctx) -> bool {
-    using t_type   = typename std::decay<decltype(t)>   ::type;
-    using ctx_type = typename std::decay<decltype(ctx)> ::type;
-    const auto& deserializer = get_deserializer<t_type, ctx_type>::call();
-    return deserializer(start, end, t, ctx);
-  }
-
-  auto deserialize(auto& start, const auto& end, auto& t) -> bool {
-    const unused_type unused{};
-   return deserialize(start, end, t, unused);
+  constexpr auto deserialize(auto& start, const auto& end, auto& attr, const auto& engine) -> bool {
+   return deserialize(start, end, attr, engine, spoon::type::unused);
   }
 
 
 
 }/*namespace spoon*/
 
-#include <spoon/serializer/any.hpp>
-#include <spoon/serializer/seq.hpp>
-#include <spoon/serializer/repeat.hpp>
-
-#include <spoon/deserializer/any.hpp>
-#include <spoon/deserializer/seq_.hpp>
-#include <spoon/deserializer/repeat.hpp>
 
 #endif /* SRC_LIB_SPOON_HPP_ */

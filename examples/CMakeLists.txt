@@ -26,6 +26,10 @@ add_definitions(-DBOOST_LOG_DYN_LINK)
 include_directories(${CMAKE_CURRENT_LIST_DIR} )
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../src )
 
+set (CMAKE_CXX_FLAGS "-std=c++1z ${CMAKE_CXX_FLAGS}")
+add_compile_options(--std=c++1z)
+add_definitions(--std=c++1z)
+
 function(add_new_example example_name file_path)
     set(executable_name "${PROJECT_NAME}-${example_name}")
 

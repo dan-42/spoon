@@ -19,8 +19,8 @@
 
 
 
-#define SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(name, byte_size)                          \
-  const constexpr auto name = [](auto& sink, auto&& attribute, auto& ctx) -> bool {               \
+#define SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(name, attribute_type, byte_size)          \
+  const constexpr auto name = [](auto& sink, attribute_type&& attribute, auto& ctx) -> bool {     \
         decltype(auto) bytes = reinterpret_cast<uint8_t*>(&attribute);                            \
         bytes += byte_size - 1;                                                                   \
         for(std::size_t i = 0; i < byte_size; ++i ) {                                             \
@@ -39,53 +39,61 @@
   }                                                                                               \
   template<>                                                                                      \
   struct spoon::get_serializer<type, context> {                                                   \
-    static auto call() -> decltype(engine) {                                            \
+    static auto call() -> decltype(engine) {                                                      \
       return engine;                                                                              \
     }                                                                                             \
   };                                                                                              \
-  const auto dummy_##engine_##type = spoon::get_serializer<type, context>::call();            \
+  const auto dummy_##engine_##type = spoon::get_serializer<type, context>::call();                \
 
 
 
 namespace spoon { namespace serializer { namespace binary {
 
-  SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(byte_,  1)
-  SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(bool_,  1)
+  SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(uint8,  uint8_t, 1)
+  SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(int8,   int8_t,  1)
+  SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(bool8,  bool,    1)
 
   namespace big {
 
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(word8_ ,   1)
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(word16_,   2)
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(word24_,   3)
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(word32_,   4)
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(word40_,   5)
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(word48_,   6)
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(word56_,   7)
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(word64_,   8)
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(float_,    4)
-    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(double_,   8)
+
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(uint16,  uint16_t,  2)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(uint24,  uint32_t,  3)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(uint32,  uint32_t,  4)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(uint40,  uint64_t,  5)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(uint48,  uint64_t,  6)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(uint56,  uint64_t,  7)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(uint64,  uint64_t,  8)
+
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(int16,   int16_t,   2)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(int24,   int32_t,   3)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(int32,   int32_t,   4)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(int40,   int64_t,   5)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(int48,   int64_t,   6)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(int56,   int64_t,   7)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(int64,   int64_t,   8)
+
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(float32, float,     4)
+    SPOON_SERIALIZE_MAKE_PRIMITIVE_BINARY_BIGENDIAN(float64, double,    8)
 
     } /* namespace big*/
 
 }}}
 
 
-SPOON_SERIALIZER_REGISTER(serializer::binary::bool_,        bool,     spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::bool8,        bool,     spoon::unused_type)
 
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::word8_,  uint8_t,  spoon::unused_type)
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::word8_,  int8_t,   spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::uint8,        uint8_t,  spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::big::uint16,  uint16_t, spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::big::uint32,  uint32_t, spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::big::uint64,  uint64_t, spoon::unused_type)
 
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::word16_, uint16_t, spoon::unused_type)
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::word16_, int16_t,  spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::int8,         int8_t,   spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::big::int16,   int16_t,  spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::big::int32,   int32_t,  spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::big::uint64,  int64_t,  spoon::unused_type)
 
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::word32_, uint32_t, spoon::unused_type)
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::word32_, int32_t,  spoon::unused_type)
-
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::word64_, uint64_t, spoon::unused_type)
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::word64_, int64_t,  spoon::unused_type)
-
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::float_,  float,    spoon::unused_type)
-SPOON_SERIALIZER_REGISTER(serializer::binary::big::double_, double,   spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::big::float32,  float,   spoon::unused_type)
+SPOON_SERIALIZER_REGISTER(serializer::binary::big::float64, double,   spoon::unused_type)
 
 
 

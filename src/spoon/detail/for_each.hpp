@@ -9,6 +9,10 @@
 #define SRC_SPOON_DETAIL_FOR_EACH_HPP_
 
 
+#include <functional>
+#include <initializer_list>
+
+
 namespace spoon { namespace detail {
 
    /**
@@ -17,6 +21,12 @@ namespace spoon { namespace detail {
   template<typename F, typename... Ts>
   F for_each_args(F f, Ts&&... a) {
     return std::initializer_list<int>{(std::ref(f)(std::forward<Ts>(a)),0)...}, f;
+  }
+
+
+  template<typename F, typename... Ts>
+  F for_each_type(F f) {
+    return std::initializer_list<int>{(std::ref(f)( Ts{}  ),0)...}, f;
   }
 
 

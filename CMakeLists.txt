@@ -12,9 +12,9 @@ enable_testing()
 add_subdirectory(src)
 
 ## excample
-#add_subdirectory(examples)
+add_subdirectory(examples)
 
 # Tests
 #if(LIB_SPOON_UNIT_TESTS)
- add_subdirectory(test)
+# add_subdirectory(test)
 #endif()

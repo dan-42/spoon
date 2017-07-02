@@ -46,6 +46,22 @@ namespace spoon { namespace deserializer {
 
 }}
 
+
+
+
+explicit auto test(double v) -> void
+{
+  std::cout << "double " << v << std::endl;
+}
+
+
+/*
+auto test(uint32_t v) -> void explicit
+{
+  std::cout << "uint32_t " << v << std::endl;
+}
+*/
+
 BOOST_AUTO_TEST_SUITE( test_spoon_variant )
 
 
@@ -60,7 +76,7 @@ variant_t var = int32_t{1337};
 std::vector<uint8_t> binary_data{};
 auto sink = std::back_insert_iterator<decltype(binary_data)>(binary_data);
 
-//auto success = boost::spirit::karma::generate(sink, (boost::spirit::karma::bool_ | boost::spirit::karma::big_dword | boost::spirit::karma::big_word  | boost::spirit::karma::big_bin_double), var);
+//auto success = boost::spirit::karma::generate(sink, (boost::spirit::karma::bool8 | boost::spirit::karma::big_dword | boost::spirit::karma::big_word  | boost::spirit::karma::big_bin_double), var);
 auto success = boost::spirit::karma::generate(sink, (boost::spirit::karma::big_dword | boost::spirit::karma::big_word), var);
 BOOST_TEST(success == true);
 
@@ -75,14 +91,24 @@ BOOST_TEST(success == true);
 
 BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
 
+
+
+
+  uint32_t i = 23;
+  test(i);
+
+
+
+
+
   std::vector<uint8_t> binary_data{};
 
   {
     using namespace spoon::serializer;
 
     varinat_t var = uint32_t{1337};
-    decltype(auto) engine = any_( binary::big::double_,  binary::big::word32_, binary::bool_);
-    //decltype(auto) engine = any_type_(bool{}, uint32_t{}, double{});
+    decltype(auto) engine = any( binary::big::float64,  binary::big::uint32, binary::bool8);
+    //decltype(auto) engine = anytype_(bool{}, uint32_t{}, double{});
     auto success = spoon::serialize_with(engine, binary_data, var);
     BOOST_TEST(success == true);
 
@@ -97,12 +123,11 @@ BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
   {
     using namespace spoon::deserializer;
 
-
     varinat_t var{};
     auto     start = binary_data.begin();
     const auto end = binary_data.end();
 
-    decltype(auto) engine = any_(binary::big::double_, binary::big::word32_, binary::bool_);
+    decltype(auto) engine = any(binary::big::float64, binary::big::uint32, binary::bool8);
 
     auto  success = spoon::deserialize_with(engine, start, end, var);
 
@@ -128,12 +153,12 @@ BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
  *
  *
 
- // decltype(auto) engine = any_type_(varinat_t);
+ // decltype(auto) engine = anytype_(varinat_t);
 
-decltype(auto) engine = any_type_(bool{}, uint32_t{}, double{});
+decltype(auto) engine = anytype_(bool{}, uint32_t{}, double{});
 
-//decltype(auto) engine_fail    = any_(binary::bool_, binary::big::word32_, binary::big::double_);
-    //decltype(auto) engine_success = any_(binary::big::double_, binary::big::word32_, binary::bool_);
+//decltype(auto) engine_fail    = any(binary::bool8, binary::big::uint32, binary::big::float32);
+    //decltype(auto) engine_success = any(binary::big::float32, binary::big::uint32, binary::bool8);
 
  * /auto success = spoon::deserialize_with(engine_fail, start, end, var);
  */
