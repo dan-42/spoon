@@ -1,13 +1,15 @@
-/*
- * spoon.hpp
+/**
+ * This file is part of project spoon
+ * a c++14 (de)serialization library for (binary) protocols
  *
- *  Created on: May 27, 2017
- *      Author: dan
+ * Copyright (C) 2017 by dan (Daniel Friedrich)
+ *
+ * Distributed under the Boost Software License, Version 1.0. (See accompanying
+ * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
 #ifndef SRC_LIB_SPOON_HPP_
 #define SRC_LIB_SPOON_HPP_
-
 
 #include <utility>
 #include <cstdint>
@@ -48,8 +50,6 @@ namespace spoon {
   constexpr auto deserialize(auto& start, const auto& end, auto& attr, const auto& engine) -> bool {
    return deserialize(start, end, attr, engine, spoon::type::unused);
   }
-
-
 
 }/*namespace spoon*/
 

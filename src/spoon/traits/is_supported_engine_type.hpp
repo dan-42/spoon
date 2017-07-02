@@ -1,8 +1,11 @@
-/*
- * is_supported_engine_type.hpp
+/**
+ * This file is part of project spoon
+ * a c++14 (de)serialization library for (binary) protocols
  *
- *  Created on: Jul 1, 2017
- *      Author: dan
+ * Copyright (C) 2017 by dan (Daniel Friedrich)
+ *
+ * Distributed under the Boost Software License, Version 1.0. (See accompanying
+ * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
 #ifndef SRC_SPOON_TRAITS_IS_SUPPORTED_ENGINE_TYPE_HPP_1
@@ -10,7 +13,7 @@
 
 #include <type_traits>
 #include <typeinfo>
-#include <iostream>
+
 namespace spoon { namespace traits {
 
 
@@ -34,9 +37,6 @@ constexpr inline auto is_supported(const auto& engine, const auto& attr)  -> boo
   using engine_type = std::decay_t<decltype(engine)>;
   using attr_type   = std::decay_t<decltype(attr)>;
   using supported   = typename is_supported_attr_type<engine_type, attr_type>::type;
-
-  //std::cout << "is_supported " << typeid(engine).name() << "  " << typeid(attr).name() << std::endl;
-
   return supported::value;
 }
 
