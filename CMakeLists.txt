@@ -16,5 +16,5 @@ add_subdirectory(examples)
 
 # Tests
 #if(LIB_SPOON_UNIT_TESTS)
-# add_subdirectory(test)
+ add_subdirectory(test)
 #endif()

@@ -131,10 +131,13 @@ SPOON_REGISTER_ATTR_TO_ENGINE(spoon::engine::uint64, int64_t);
 
 namespace spoon {
 
+  constexpr engine::bool8     bool8{};
+
   constexpr engine::uint8     uint8{};
   constexpr engine::uint16    uint16{};
   constexpr engine::uint32    uint32{};
   constexpr engine::uint64    uint64{};
+
   constexpr engine::float32   float32{};
   constexpr engine::float64   float64{};
 
