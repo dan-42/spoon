@@ -24,13 +24,9 @@
 #include <type_traits>
 
 
-
-
 using binary_data                 = std::vector<uint8_t>;
 using binary_data_iterator        = binary_data::iterator;
 using binary_data_const_iterator  = binary_data::const_iterator;
-
-
 
 
 struct foo {
@@ -161,15 +157,48 @@ auto do_optional()  -> void {
 }
 
 
-auto combined() {
 
+auto do_repeat()  -> void {
+  std::cout << "\n------------------REPEATE-------------------------" << std::endl;
+
+    using vector_double = std::vector<double>;
+    constexpr auto engine = spoon::repeat<vector_double, 1,10>(spoon::float64);
+    {
+      binary_data data;
+      {
+        vector_double var{};
+        var.push_back(3.23);
+        var.push_back(1.23);
+        var.push_back(34241.23);
+        var.push_back(-323);
+        auto success = spoon::serialize(data, var, engine );
+        std::cout << " 0x" ;
+        for ( const auto& c : data ) {
+          std::cout << std::hex <<  std::setw(2) << std::setfill('0') << (int)c << "";
+        }
+        std::cout << std::endl;
+      }
+      {
+        auto start = data.begin();
+        auto end   = data.end();
+        vector_double var;
+        auto success = spoon::deserialize(start, end, var, engine);
+        for(auto v : var)
+        {
+          std::cout << std::dec << "deserialize " << v << std::endl;
+        }
+
+      }
+    }
 }
+
 
 int main(int argc, char **argv) {
 
  do_seq();
  do_any();
  do_optional();
+ do_repeat();
 
 
   return 0;

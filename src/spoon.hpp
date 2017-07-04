@@ -23,6 +23,7 @@
 #include <spoon/seq.hpp>
 #include <spoon/any.hpp>
 #include <spoon/optional.hpp>
+#include <spoon/repeat.hpp>
 
 
 namespace spoon {

@@ -41,7 +41,7 @@ namespace spoon { namespace engine {
        /**
         * seq serialzies/deserializes generates a list/vector/array
         */
-       struct container{};
+       struct repeat{};
 
        /**
         * any serialzies/deserializes a variant type like std::variant
