@@ -1,21 +1,11 @@
 /**
- * ninja-wooki, is a BACnet stack C++ library
+ * Copyright (C) 2017 by dan (Daniel Friedrich)
  *
- * Copyright (C) 2015 Daniel Friedrich
+ * This file is part of project spoon
+ * a c++14 (de)serialization library for (binary) protocols
  *
- * This file is part of ninja-wooki.
- *
- * ninja-wooki is free software: you can redistribute it and/or modify it under the terms of the
- * GNU General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * ninja-wooki is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- *
- * See the GNU General Public License for more details. You should have received a copy of the GNU
- * General Public License along with Mupen64PlusAE. If not, see <http://www.gnu.org/licenses/>.
- *
- * Authors: Daniel Friedrich
+ * Distributed under the Boost Software License, Version 1.0. (See accompanying
+ * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
 
@@ -25,42 +15,10 @@
 #include <iostream>
 
 #include <spoon.hpp>
-/*
-#include <boost/spirit/include/karma.hpp>
-#include <boost/spirit/include/karma_binary.hpp>
-#include <boost/variant.hpp>
-*/
+
 using varinat_t = mapbox::util::variant<bool, uint32_t, double>;
 
-namespace spoon { namespace deserializer {
 
-
-
-  template <typename BaseType>
-  struct assign<BaseType, varinat_t> {
-      static auto to(BaseType base, varinat_t &attr) -> bool {
-        attr = base;
-        return true;
-      }
-   };
-
-}}
-
-
-
-
-explicit auto test(double v) -> void
-{
-  std::cout << "double " << v << std::endl;
-}
-
-
-/*
-auto test(uint32_t v) -> void explicit
-{
-  std::cout << "uint32_t " << v << std::endl;
-}
-*/
 
 BOOST_AUTO_TEST_SUITE( test_spoon_variant )
 
@@ -92,24 +50,12 @@ BOOST_TEST(success == true);
 BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
 
 
-
-
-  uint32_t i = 23;
-  test(i);
-
-
-
-
-
+  constexpr auto engine = spoon::any<varinat_t>( spoon::float64,  spoon::uint32, spoon::bool8);
   std::vector<uint8_t> binary_data{};
 
   {
-    using namespace spoon::serializer;
-
     varinat_t var = uint32_t{1337};
-    decltype(auto) engine = any( binary::big::float64,  binary::big::uint32, binary::bool8);
-    //decltype(auto) engine = anytype_(bool{}, uint32_t{}, double{});
-    auto success = spoon::serialize_with(engine, binary_data, var);
+    auto success = spoon::serialize(binary_data, var, engine);
     BOOST_TEST(success == true);
 
     BOOST_TEST( binary_data.size() == size_t{4} );
@@ -118,22 +64,15 @@ BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
     BOOST_TEST(binary_data[2] == 0x05);
     BOOST_TEST(binary_data[3] == 0x39);
   }
-
-
   {
-    using namespace spoon::deserializer;
-
     varinat_t var{};
     auto     start = binary_data.begin();
     const auto end = binary_data.end();
 
-    decltype(auto) engine = any(binary::big::float64, binary::big::uint32, binary::bool8);
-
-    auto  success = spoon::deserialize_with(engine, start, end, var);
+    auto  success = spoon::deserialize(start, end, var, engine);
 
     BOOST_TEST(success == true);
     BOOST_TEST((start == end), "start != end");
-
 
     struct result_visitor {
       void operator()(bool r) const     { BOOST_TEST(false,               " it is bool"); }
@@ -143,7 +82,6 @@ BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
 
     result_visitor visitor;
     mapbox::util::apply_visitor(visitor, var);
-
   }
 
 }

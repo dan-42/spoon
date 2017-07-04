@@ -1,16 +1,20 @@
-/*
- * poc.cpp
+/**
+ * Copyright (C) 2017 by dan (Daniel Friedrich)
  *
- *  Created on: May 27, 2017
- *      Author: dan
+ * This file is part of project spoon
+ * a c++14 (de)serialization library for (binary) protocols
+ *
+ * Distributed under the Boost Software License, Version 1.0. (See accompanying
+ * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
-
 
 #include <mapbox/variant.hpp>
 #include <mapbox/variant_io.hpp>
 #include <spoon.hpp>
 
 #include <boost/fusion/adapted.hpp>
+#include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
 
 #include <cstdint>
 #include <vector>
@@ -106,12 +110,58 @@ auto do_seq() -> void {
 }
 
 
+auto do_optional()  -> void {
+  std::cout << "\n------------------OPTIONAL-------------------------" << std::endl;
+
+    using optional_double = boost::optional<double>;
+    constexpr auto engine = spoon::optional<optional_double>(spoon::float64);
+    {
+      binary_data data;
+      {
+        optional_double var{};
+        auto success = spoon::serialize(data, var, engine );
+        std::cout << " 0x" ;
+        for ( const auto& c : data ) {
+          std::cout << std::hex <<  std::setw(2) << std::setfill('0') << (int)c << "";
+        }
+        std::cout << std::endl;
+      }
+
+      {
+        auto start = data.begin();
+        auto end   = data.end();
+        optional_double var;
+        auto success = spoon::deserialize(start, end, var, engine);
+        std::cout << std::dec << "deserialize " << var << std::endl;
+      }
+    }
+
+    {
+      binary_data data;
+      {
+        optional_double var;
+        var = 3.1472;
+        auto success = spoon::serialize(data, var, engine );
+        std::cout << " 0x" ;
+        for ( const auto& c : data ) {
+          std::cout << std::hex <<  std::setw(2) << std::setfill('0') << (int)c << "";
+        }
+        std::cout << std::endl;
+      }
+
+      {
+        auto start = data.begin();
+        auto end   = data.end();
+        optional_double var;
+        auto success = spoon::deserialize(start, end, var, engine);
+        std::cout << std::dec << "deserialize " << var.get() << std::endl;
+      }
+    }
+
+}
+
 
 auto combined() {
-
-
-
-
 
 }
 
@@ -119,7 +169,7 @@ int main(int argc, char **argv) {
 
  do_seq();
  do_any();
-
+ do_optional();
 
 
   return 0;

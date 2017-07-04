@@ -31,13 +31,11 @@
 
 
 
-struct pod_type /*: public std::tuple<bool, uint32_t, double> */{
+struct pod_type {
 
   bool      my_bool;
   uint32_t  my_uint32;
   double    my_double;
-
-
 };
 
 BOOST_FUSION_ADAPT_STRUCT(pod_type, my_bool, my_uint32, my_double);
@@ -45,27 +43,13 @@ BOOST_FUSION_ADAPT_STRUCT(pod_type, my_bool, my_uint32, my_double);
 
 BOOST_AUTO_TEST_SUITE( test_spoon_seq )
 
-
-
-
-
 BOOST_AUTO_TEST_CASE( test_spoon_seq_simple ) {
 
+  constexpr auto engine = spoon::seq<pod_type>( spoon::bool8, spoon::uint32, spoon::float64);
   std::vector<uint8_t> binary_data{};
-
   {
-
-
-    pod_type pod;
-
-
-    using namespace spoon::serializer;
-
     pod_type var{true, 1337, 3.14};
-    decltype(auto) engine = seq_( binary::bool_,  binary::big::word32_, binary::big::double_ /*, binary::big::double_*/);
-
-    //decltype(auto) engine = seq_(bool{}, uint32_t{}, double{});
-    auto success = spoon::serialize_with(engine, binary_data, var);
+    auto success = spoon::serialize(binary_data, var, engine);
     BOOST_TEST(success == true);
 
     BOOST_TEST( binary_data.size() == size_t{13} );
@@ -85,29 +69,17 @@ BOOST_AUTO_TEST_CASE( test_spoon_seq_simple ) {
     BOOST_TEST(binary_data[11] == 0x85);
     BOOST_TEST(binary_data[12] == 0x1F);
   }
-
-
   {
-    using namespace spoon::deserializer;
-
     pod_type pod;
     auto     start = binary_data.begin();
     const auto end = binary_data.end();
-
-    decltype(auto) engine = seq_(binary::bool_, binary::big::word32_,  binary::big::double_);
-
-    auto  success = spoon::deserialize_with(engine, start, end, pod);
-
+    auto  success = spoon::deserialize(start, end, pod, engine);
     BOOST_TEST(success == true);
     BOOST_TEST((start == end), "start != end");
-
-
     BOOST_TEST(pod.my_bool    == true);
     BOOST_TEST(pod.my_uint32  == uint32_t{1337});
     BOOST_TEST(pod.my_double  == 3.14);
   }
-
-
 }
 
 
