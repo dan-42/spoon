@@ -16,7 +16,7 @@
 #include  <spoon/traits/is_supported_engine_type.hpp>
 #include  <spoon/detail/invoke_if.hpp>
 #include  <spoon/detail/for_each.hpp>
-//todo move serialize into from biary
+//todo move serialize into from binary
 #include  <spoon/binary.hpp>
 
 #include <mapbox/variant.hpp>
@@ -24,6 +24,15 @@
 #include <type_traits>
 #include <tuple>
 
+
+namespace spoon { namespace traits {
+
+template<typename Engine, typename Ctx>
+constexpr auto expect_optional(Engine, Ctx& ctx) -> bool {
+  return true;
+}
+
+}}
 
 
 namespace spoon { namespace engine {
@@ -47,13 +56,14 @@ namespace detail {
 
     using optional_engine_type   = Engine;
     using optional_value_type    = typename Attr::value_type;
+    using this_type              = optional<Attr, Engine>;
 
     /**
      * optional serializer
      */
     static constexpr inline auto serialize(auto& sink, auto&& optional_attr, auto& ctx) -> bool {
 
-      if(optional_attr) {
+      if(optional_attr && spoon::traits::expect_optional(this_type{}, ctx)) {
         using sink_type = std::decay_t<decltype(sink)>;
         sink_type optional_sink{};
         bool pass = optional_engine_type::serialize(optional_sink, optional_attr.value(), ctx);
@@ -73,6 +83,9 @@ namespace detail {
      */
     static constexpr inline auto deserialize(auto& start, const auto& end, auto& optional_attr,  auto& ctx) -> bool {
 
+      if(!spoon::traits::expect_optional(this_type{}, ctx)) {
+        return true;
+      }
       optional_value_type value{};
 
       auto pass = optional_engine_type::deserialize(start, end, value, ctx);

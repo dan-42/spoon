@@ -9,6 +9,24 @@
 #define SRC_SPOON_ENGINE_REPEAT_HPP_
 
 
+namespace spoon { namespace traits {
+
+template<typename Engine, typename Ctx>
+auto repeate_done_check(Engine, Ctx& ctx, size_t count) -> bool {
+  return false;
+}
+
+
+
+template<typename Engine, typename Ctx>
+struct done{
+    static auto call(Ctx& ctx, size_t count) -> bool {
+      return false;
+    }
+};
+
+
+}}
 
 namespace spoon { namespace engine {
 
@@ -18,7 +36,7 @@ namespace detail {
 } //detail
 
 
-  template<typename Attr, std::size_t Min, std::size_t Max, typename Engine>
+  template<typename Attr, std::size_t Min, std::size_t Max, typename Engine, typename Handler>
   struct repeat : base {
     using tag_type          = tag::repeat;
     using has_context       = std::false_type;
@@ -28,11 +46,14 @@ namespace detail {
     using element_type      = typename Attr::value_type;
     using min_type          = std::integral_constant<std::size_t, Min>;
     using max_type          = std::integral_constant<std::size_t, Max>;
+
+    using this_type         = repeat<Attr, Min, Max, Engine, Handler>;
     static_assert(min_type::value <= max_type::value, "ERROR spoon engine repeat, min must be <= max");
+
     /**
      * any serializer
      */
-    static constexpr inline auto serialize(auto& sink, auto&& container_attr, auto& ctx) -> bool {
+    static inline auto serialize(auto& sink, auto&& container_attr, auto& ctx) -> bool {
 
       bool pass = false;
       auto min = min_type::value;
@@ -52,6 +73,16 @@ namespace detail {
 
       size_t count = 0;
       for( auto attr : container_attr ) {
+
+        if(spoon::traits::repeate_done_check(this_type{}, ctx, count) ) {
+           break;
+        }
+
+
+        if(spoon::traits::done<this_type, decltype(ctx)>::call(ctx, count) ) {
+           break;
+        }
+
         pass = engine_type::serialize(sink, std::move(attr), ctx);
         if(pass) {
           count++;
@@ -71,7 +102,7 @@ namespace detail {
     /**
      * any deserializer
      */
-    static constexpr inline auto deserialize(auto& start, const auto& end, auto& container_attr,  auto& ctx) -> bool {
+    static constexpr inline auto deserialize(auto& start, const auto& end, auto& container_attr, auto& ctx) -> bool {
 
       bool pass = true;
       size_t count = 0;
@@ -87,6 +118,13 @@ namespace detail {
         //todo customization point
         container_attr.push_back(attr);
         count++;
+
+
+      /*  if(!instance.handler(count, ctx)) {
+          return false;
+        }
+      */
+
         if(max != 0 && count >= max ) {
           break;
         }
@@ -97,6 +135,7 @@ namespace detail {
       }
       return true;
     }
+
   };
 
 
@@ -106,22 +145,29 @@ namespace detail {
 
 namespace spoon {
 
-  template<typename Attr, std::size_t Min, std::size_t Max, typename Engine>
-  constexpr inline auto repeat(Engine /*engines*/) noexcept -> engine::repeat<Attr, Min, Max, Engine> {
-    return engine::repeat<Attr, Min, Max, Engine>{};
+
+
+  //without handler
+  template<typename Attr, std::size_t Min, std::size_t Max, typename UniqueType, typename Engine>
+  constexpr inline auto repeat(Engine ) noexcept {
+    return engine::repeat<Attr, Min, Max, Engine, UniqueType>{};
   }
 
+  template<typename Attr, std::size_t Min, std::size_t Max, typename Engine>
+  constexpr inline auto repeat(Engine ) noexcept {
+    return engine::repeat<Attr, Min, Max, Engine, nullptr_t>{};
+  }
+
+
   template<typename Attr, std::size_t Count, typename Engine>
-  constexpr inline auto repeat(Engine /*engines*/) noexcept -> engine::repeat<Attr, Count, Count, Engine> {
-    return engine::repeat<Attr, Count, Count, Engine>{};
+  constexpr inline auto repeat(Engine) noexcept  {
+    return engine::repeat<Attr, Count, Count, Engine, nullptr_t>{};
   }
 
   template<typename Attr, typename Engine>
-  constexpr inline auto repeat(Engine /*engines*/) noexcept -> engine::repeat<Attr, 0, 0, Engine> {
-    return engine::repeat<Attr, 0, 0, Engine>{};
+  constexpr inline auto repeat(Engine) noexcept{
+    return engine::repeat<Attr, 0, 0, Engine, nullptr_t>{};
   }
-
-
 }
 
 

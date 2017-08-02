@@ -18,7 +18,15 @@ namespace spoon {
  constexpr auto serialize  (auto& sink,                   auto&& attr, const auto& engine, auto& ctx) -> bool;
  constexpr auto deserialize(auto& start, const auto& end, auto&  attr, const auto& engine, auto& ctx) -> bool;
 
-}
+} //spoon
+
+
+namespace spoon { namespace tag {
+
+  struct big_endian;
+  struct little_endian;
+
+}} // spoon::tag
 
 namespace spoon { namespace engine {
 

@@ -12,7 +12,7 @@ if (CMAKE_BUILD_TYPE MATCHES "RELEASE")
     add_compile_options(
       -s
       -fvisibility=hidden 
-      -Os
+      -O3
       -ffunction-sections
       -fdata-sections)
   endif()

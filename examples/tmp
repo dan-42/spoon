@@ -1,0 +1,116 @@
+#include <utility>
+#include <type_traits>
+#include <vector>
+#include <cstdint>
+
+#define FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
+
+std::vector<uint8_t> data{};
+std::back_insert_iterator<std::vector<uint8_t>> sink{data};
+using sink_type = decltype(sink);
+
+
+struct node_base {};
+
+struct node_root {};
+
+template <typename Parent, typename F>
+struct node : Parent,  F
+{
+    using this_type = node<Parent, F>;
+
+
+    template <typename ParentFwd, typename FFwd>
+    node(ParentFwd&& p, FFwd&& f) : Parent{FWD(p)}, F{FWD(f)}
+    {
+    }
+
+    auto& as_f() noexcept {
+        return static_cast<F&>(*this);
+    }
+
+    auto& as_p() noexcept {
+        return static_cast<Parent&>(*this);
+    }
+
+    auto operator()(bool b, sink_type& sink, auto attr) -> void {
+      as_f()(b, sink, attr);
+    }
+
+
+
+    template <typename FThen>
+    auto then(FThen&& f_then)
+    {
+        auto f = [f_then = FWD(f_then)](auto& parent) mutable {
+            return parent.call_with_parent();
+        };
+        using f_type = decltype(f);
+
+        return ::node<this_type, f_type>{std::move(*this), std::move(f)};
+    }
+
+
+    decltype(auto) call_with_parent(std::true_type)
+    {
+      return as_f()();
+    }
+
+    decltype(auto) call_with_parent(std::false_type)
+    {
+      return as_f()(as_p());
+    }
+
+    decltype(auto) call_with_parent()
+    {
+      return call_with_parent(std::is_same<Parent, node_root>::type);
+    }
+};
+
+
+
+template <typename F>
+auto initiate(F&& f)
+{
+    return node<node_root, F>{node_root{}, std::forward<F>(f)};
+}
+
+template<typename FParent, typename FChild, typename = std::enable_if_t<std::is_base_of<node_base, FParent>::value>>
+auto operator<<(FParent&& p, FChild child) -> decltype(auto)
+{
+   return std::move(p.then(std::move(child)));
+}
+
+
+
+auto make_int() {
+  return [](bool& b, sink_type& sink, auto attr) -> void  {
+
+  };
+}
+
+
+
+
+
+
+auto main() -> int {
+
+  bool b = true;
+   int attr{42};
+
+  auto tt = initiate(make_int())
+              .then(make_int()
+            );
+
+  //auto t = initiate(make_int()) << make_int();
+
+
+  //t(b, sink, attr);
+  tt(b, sink, attr);
+
+  return (int)b;
+
+
+
+}

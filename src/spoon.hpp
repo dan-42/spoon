@@ -14,7 +14,6 @@
 #include <utility>
 #include <cstdint>
 
-
 #include <spoon/type/unused.hpp>
 #include <spoon/traits/is_engine.hpp>
 #include <spoon/traits/is_supported_engine_type.hpp>
@@ -24,6 +23,7 @@
 #include <spoon/any.hpp>
 #include <spoon/optional.hpp>
 #include <spoon/repeat.hpp>
+#include <spoon/bits.hpp>
 
 
 namespace spoon {
@@ -32,7 +32,7 @@ namespace spoon {
     static_assert(traits::is_engine(engine)          == true, "ERROR provided variable engine is not a spoon::engine type");
     static_assert(traits::is_supported(engine, attr) == true, "ERROR provided attr is not supported by the provided engine");
     using engine_type = typename std::decay<decltype(engine)>::type;
-    return engine_type::serialize(sink, std::move(attr), ctx);;
+    return engine_type::serialize(sink, std::move(attr), ctx);
   }
 
 
