@@ -8,168 +8,195 @@
 #ifndef SRC_SPOON_ENGINE_REPEAT_HPP_
 #define SRC_SPOON_ENGINE_REPEAT_HPP_
 
+#include <spoon/traits/has_call_operator.hpp>
 
-namespace spoon { namespace traits {
-
-template<typename Engine, typename Ctx>
-auto repeate_done_check(Engine, Ctx& ctx, size_t count) -> bool {
-  return false;
-}
-
-
-
-template<typename Engine, typename Ctx>
-struct done{
-    static auto call(Ctx& ctx, size_t count) -> bool {
-      return false;
-    }
-};
-
-
-}}
+#include <cstdint>
+#include <utility>
+#include <type_traits>
+#include <limits>
+#include <cassert>
 
 namespace spoon { namespace engine {
 
-namespace detail {
+  namespace detail {
+
+    template<typename Gear, typename CountProvider>
+    struct repeat_with_count_provider  : Gear , CountProvider {
+      using size_type = std::size_t;
 
 
-} //detail
+      template<typename FwdGear, typename FwdCountProvider>
+      constexpr repeat_with_count_provider(FwdGear&& fwd_gear, FwdCountProvider&& fwd_count_provider)
+      : Gear{std::forward<FwdGear>(fwd_gear)}
+      , CountProvider{std::forward<FwdCountProvider>(fwd_count_provider)} {}
 
+      auto& as_gear() const noexcept { return static_cast< const Gear&>(*this); }
+      auto& as_count_provider() const noexcept { return static_cast< const CountProvider&>(*this); }
 
-  template<typename Attr, std::size_t Min, std::size_t Max, typename Engine, typename Handler>
-  struct repeat : base {
-    using tag_type          = tag::repeat;
-    using has_context       = std::false_type;
-    using attr_type         = Attr;
-    using engine_type       = Engine;
-
-    using element_type      = typename Attr::value_type;
-    using min_type          = std::integral_constant<std::size_t, Min>;
-    using max_type          = std::integral_constant<std::size_t, Max>;
-
-    using this_type         = repeat<Attr, Min, Max, Engine, Handler>;
-    static_assert(min_type::value <= max_type::value, "ERROR spoon engine repeat, min must be <= max");
-
-    /**
-     * any serializer
-     */
-    static inline auto serialize(auto& sink, auto&& container_attr, auto& ctx) -> bool {
-
-      bool pass = false;
-      auto min = min_type::value;
-      auto max = max_type::value;
-
-      // both 0 means as much as we have in the container
-      if(min == 0 && max == 0) {
-        max = container_attr.size();
-      }
-      // cannot meet requirements fail!
-      else if(container_attr.size() < min_type::value) {
-        return false;
-      }
-      else {
-        max = (container_attr.size() < max_type::value) ? container_attr.size() :  max_type::value;
-      }
-
-      size_t count = 0;
-      for( auto attr : container_attr ) {
-
-        if(spoon::traits::repeate_done_check(this_type{}, ctx, count) ) {
-           break;
+      /**
+       * handling infinitive, min and max
+       */
+      template<typename Sink, typename Attr>
+      inline auto serialize(bool& pass, Sink& sink, Attr&& attr)  const -> void {
+        using element_type = typename std::decay_t<Attr>::value_type;
+        const auto expected_count = as_count_provider()();
+        size_type count = 0;
+        for(decltype(auto) a : attr) {
+          if(pass == false || count >= expected_count) {
+            return;
+          }
+          as_gear().serialize(pass, sink, std::forward<element_type>(a));
+          ++count;
         }
-
-
-        if(spoon::traits::done<this_type, decltype(ctx)>::call(ctx, count) ) {
-           break;
+        if(count != expected_count) {
+          pass = false;
         }
+      }
 
-        pass = engine_type::serialize(sink, std::move(attr), ctx);
-        if(pass) {
-          count++;
-          if(count >= max) {
-            return true;
+      /** deserialize
+       */
+      template<typename Iterator, typename Attr>
+      inline auto deserialize(bool& pass, Iterator& start, const Iterator& end, Attr& attr)  const -> void {
+        using element_type = typename std::decay_t<Attr>::value_type;
+        const auto expected_count = as_count_provider()();
+        element_type element{};
+        size_type count = 0;
+
+        while(count < expected_count && pass != false) {
+          as_gear().deserialize(pass, start, end, element);
+          if(pass == true) {
+            ++count;
+            attr.push_back(element);
+          }
+          else {
+            pass = true;
+            break;
           }
         }
-        else {
-          if(count >= min) {
-            return true;
+        if(count < expected_count) {
+          pass = false;
+        }
+      }
+
+    };
+
+    template<typename Gear>
+    struct repeat  : Gear {
+      using size_type = std::size_t;
+      size_type min = std::numeric_limits<size_t>::min();
+      size_type max = std::numeric_limits<size_t>::max();
+
+      template<typename FwdGear>
+      constexpr repeat(FwdGear&& fwd_gear) : Gear(std::forward<FwdGear>(fwd_gear)) {}
+
+      template<typename FwdGear>
+      constexpr repeat(FwdGear&& fwd_gear, size_type count) : Gear(std::forward<FwdGear>(fwd_gear)), min{count}, max{count} {}
+
+      template<typename FwdGear>
+      constexpr repeat(FwdGear&& fwd_gear, size_type fwd_min, size_type fwd_max) : Gear(std::forward<FwdGear>(fwd_gear)), min{fwd_min}, max{fwd_max}  {
+        assert(min <= max);
+      }
+
+
+      constexpr auto& as_gear() const noexcept { return static_cast< const Gear&>(*this); }
+
+      constexpr inline auto operator()(size_type count)  const {
+        return repeat<Gear>{std::move(as_gear()), count};
+      }
+
+      constexpr inline auto operator()(size_type min, size_type max)  const {
+        return repeat<Gear>{std::move(as_gear()), min, max};
+      }
+
+      template<typename CountProvider, typename = std::enable_if_t<spoon::traits::has_call_operator<CountProvider>::value> >
+      constexpr inline auto operator()(CountProvider&& count_provider)  const {
+        return repeat_with_count_provider<Gear, CountProvider>{std::move(as_gear()), std::forward<CountProvider>(count_provider)};
+      }
+
+
+      /**
+       * handling infinitive, min and max
+       */
+      template<typename Sink, typename Attr>
+      inline auto serialize(bool& pass, Sink& sink, Attr&& attr)  const -> void {
+        size_type count = 0;
+        for(decltype(auto) a : attr) {
+          //done when last call failed or we have reached max
+          if(pass == false || count >= max) {
+            return;
+          }
+          as_gear().serialize(pass, sink, std::forward<typename std::decay_t<Attr>::value_type>(a));
+          ++count;
+        }
+        if(count < min) {
+          pass = false;
+        }
+      }
+
+      /** deserialize
+       */
+      template<typename Iterator, typename Attr>
+      inline auto deserialize(bool& pass, Iterator& start, const Iterator& end, Attr& attr)  const -> void {
+        using element_type = typename std::decay_t<Attr>::value_type;
+        element_type element{};
+        size_type count = 0;
+
+        while(count < max && pass != false) {
+          as_gear().deserialize(pass, start, end, element);
+          if(pass == true) {
+            ++count;
+            attr.push_back(element);
+          }
+          else {
+            pass = true;
+            break;
           }
         }
+        if(count < min) {
+          pass = false;
+        }
       }
-      return false;
+
+    };
+  }}}// spoon::engine::detail
+
+namespace spoon { namespace engine {
+
+  struct repeat {
+    template<typename FwdGear>
+    constexpr auto inline operator[](FwdGear&& fwd_gear) const {
+        return detail::repeat<FwdGear>(std::forward<FwdGear>(fwd_gear));
     }
-
-    /**
-     * any deserializer
-     */
-    static constexpr inline auto deserialize(auto& start, const auto& end, auto& container_attr, auto& ctx) -> bool {
-
-      bool pass = true;
-      size_t count = 0;
-      auto min = min_type::value;
-      auto max = max_type::value;
-
-      while(true) {
-        element_type attr{};
-        pass = engine_type::deserialize(start, end, attr, ctx);
-        if(!pass) {
-          break;
-        }
-        //todo customization point
-        container_attr.push_back(attr);
-        count++;
-
-
-      /*  if(!instance.handler(count, ctx)) {
-          return false;
-        }
-      */
-
-        if(max != 0 && count >= max ) {
-          break;
-        }
-      }
-
-      if(count < min) {
-        return false;
-      }
-      return true;
+    template<typename FwdGear>
+    constexpr auto inline operator[](const FwdGear& fwd_gear) const {
+        return detail::repeat<FwdGear>(fwd_gear);
     }
-
   };
 
+  struct repeat_until {
+
+    constexpr inline repeat_until(){}
+    template<typename FwdGear>
+    constexpr auto inline operator[](FwdGear&& fwd_gear) const {
+        return detail::repeat<FwdGear>(std::forward<FwdGear>(fwd_gear));
+    }
+    template<typename FwdGear>
+    constexpr auto inline operator[](const FwdGear& fwd_gear) const {
+        return detail::repeat<FwdGear>(fwd_gear);
+    }
+  };
+
+}} //spoon::engine
 
 
-}}
 
 
 namespace spoon {
 
+constexpr auto repeat = engine::repeat{};
+constexpr auto repeat_until = engine::repeat_until{};
 
-
-  //without handler
-  template<typename Attr, std::size_t Min, std::size_t Max, typename UniqueType, typename Engine>
-  constexpr inline auto repeat(Engine ) noexcept {
-    return engine::repeat<Attr, Min, Max, Engine, UniqueType>{};
-  }
-
-  template<typename Attr, std::size_t Min, std::size_t Max, typename Engine>
-  constexpr inline auto repeat(Engine ) noexcept {
-    return engine::repeat<Attr, Min, Max, Engine, nullptr_t>{};
-  }
-
-
-  template<typename Attr, std::size_t Count, typename Engine>
-  constexpr inline auto repeat(Engine) noexcept  {
-    return engine::repeat<Attr, Count, Count, Engine, nullptr_t>{};
-  }
-
-  template<typename Attr, typename Engine>
-  constexpr inline auto repeat(Engine) noexcept{
-    return engine::repeat<Attr, 0, 0, Engine, nullptr_t>{};
-  }
-}
-
+} // spoon
 
 
 #endif /* SRC_SPOON_ENGINE_REPEAT_HPP_ */

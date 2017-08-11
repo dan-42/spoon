@@ -15,57 +15,27 @@ namespace spoon {
  /**
   * forward declaration for recursive calls inside of complex engines
   */
- constexpr auto serialize  (auto& sink,                   auto&& attr, const auto& engine, auto& ctx) -> bool;
- constexpr auto deserialize(auto& start, const auto& end, auto&  attr, const auto& engine, auto& ctx) -> bool;
+// constexpr auto serialize  (auto& sink,                   auto&& attr, const auto& engine, auto& ctx) -> bool;
+// constexpr auto deserialize(auto& start, const auto& end, auto&  attr, const auto& engine, auto& ctx) -> bool;
 
 } //spoon
 
 
 namespace spoon { namespace tag {
 
-  struct big_endian;
-  struct little_endian;
+  struct big_endian{};
+  struct little_endian{};
 
-}} // spoon::tag
+}}
 
 namespace spoon { namespace engine {
-
-  namespace tag {
-       /**
-        * parses one single element like int, bool
-        */
-       struct simple{};
-
-       /**
-        * binary operation like parsing int AND bool
-        */
-       struct binary{};
-
-       /**
-        * nary must be a seqence like std::tuple or FUSION_SEQ
-        */
-       struct seq{};
-
-       /**
-        * seq serialzies/deserializes generates a list/vector/array
-        */
-       struct repeat{};
-
-       /**
-        * any serialzies/deserializes a variant type like std::variant
-        */
-       struct any{};
-
-       /**
-        * any serialzies/deserializes a variant type like std::variant
-        */
-       struct optional{};
-   }
 
   /**
    *  base class to identify an engine via traits
    */
   struct base{};
+
+  struct gear_base{};
 
 }}
 

@@ -11,104 +11,118 @@
 #ifndef SRC_SPOON_ENGINE_OPTIONAL_HPP_
 #define SRC_SPOON_ENGINE_OPTIONAL_HPP_
 
-
-#include  <spoon/engine/base.hpp>
-#include  <spoon/traits/is_supported_engine_type.hpp>
-#include  <spoon/detail/invoke_if.hpp>
-#include  <spoon/detail/for_each.hpp>
-//todo move serialize into from binary
-#include  <spoon/binary.hpp>
-
-#include <mapbox/variant.hpp>
+#include  <spoon/traits/has_call_operator.hpp>
+#include  <spoon.hpp>
 
 #include <type_traits>
-#include <tuple>
-
-
-namespace spoon { namespace traits {
-
-template<typename Engine, typename Ctx>
-constexpr auto expect_optional(Engine, Ctx& ctx) -> bool {
-  return true;
-}
-
-}}
+#include <utility>
 
 
 namespace spoon { namespace engine {
 
-namespace detail {
+  namespace detail {
+
+    template<typename Gear, typename ExpectedProvider>
+    struct optional_with_expected_provider  : Gear , ExpectedProvider {
+      using size_type = std::size_t;
 
 
+      template<typename FwdGear, typename FwdExpectedProvider>
+      constexpr optional_with_expected_provider(FwdGear&& fwd_gear, FwdExpectedProvider&& fwd_expected_provider)
+      : Gear{std::forward<FwdGear>(fwd_gear)}
+      , ExpectedProvider{std::forward<FwdExpectedProvider>(fwd_expected_provider)} {}
 
-} //detail
+      auto& as_gear() const noexcept { return static_cast< const Gear&>(*this); }
+      auto& as_expected_provider() const noexcept { return static_cast< const ExpectedProvider&>(*this); }
 
+      /**
+       * handling infinitive, min and max
+       */
+      template<typename Sink, typename OptAttr>
+      inline auto serialize(bool& pass, Sink& sink, OptAttr&& opt_attr)  const -> void {
+        const auto is_expected = as_expected_provider()();
+        if(opt_attr && is_expected) {
+          pass = spoon::serialize(sink, as_gear(), opt_attr.value());
+        }
+      }
 
-
-
-
-  //todo add tag dispatching for std::optional, boost::optional ... if API differs
-  template<typename Attr, typename Engine>
-  struct optional : base {
-    using tag_type          = tag::optional;
-    using has_context       = std::false_type;
-    using attr_type         = Attr;
-
-    using optional_engine_type   = Engine;
-    using optional_value_type    = typename Attr::value_type;
-    using this_type              = optional<Attr, Engine>;
-
-    /**
-     * optional serializer
-     */
-    static constexpr inline auto serialize(auto& sink, auto&& optional_attr, auto& ctx) -> bool {
-
-      if(optional_attr && spoon::traits::expect_optional(this_type{}, ctx)) {
-        using sink_type = std::decay_t<decltype(sink)>;
-        sink_type optional_sink{};
-        bool pass = optional_engine_type::serialize(optional_sink, optional_attr.value(), ctx);
-
-        if(pass) {
-          //todo  make it more generic
-          for(auto c : optional_sink ) {
-            if(!detail::serialize_to_sink(sink , std::move(c))) { return false; }
+      /** deserialize
+       */
+      template<typename Iterator, typename OptAttr>
+      inline auto deserialize(bool& pass, Iterator& start, const Iterator& end, OptAttr& opt_attr)  const -> void {
+        using value_type = typename OptAttr::value_type;
+        const auto is_expected = as_expected_provider()();
+        if(is_expected) {
+          value_type value{};
+          pass = spoon::deserialize(start, end, as_gear(), value);
+          if(pass) {
+            opt_attr = value;
           }
         }
       }
-      return true;
+
+    };
+
+    template<typename Gear>
+    struct optional  : Gear {
+
+      template<typename FwdGear>
+      constexpr optional(FwdGear&& fwd_gear) : Gear(std::forward<FwdGear>(fwd_gear)) {}
+
+      constexpr auto& as_gear() const noexcept { return static_cast< const Gear&>(*this); }
+
+      template<typename ExpectedProvider, typename = std::enable_if_t<spoon::traits::has_call_operator<ExpectedProvider>::value> >
+      constexpr inline auto operator()(ExpectedProvider&& expected_provider)  const {
+        return optional_with_expected_provider<Gear, ExpectedProvider>{std::move(as_gear()), std::forward<ExpectedProvider>(expected_provider)};
+      }
+
+
+      /**
+       *
+       */
+      template<typename Sink, typename OptAttr>
+      inline auto serialize(bool& pass, Sink& sink, OptAttr&& opt_attr)  const -> void {
+        if(opt_attr) {
+          pass = spoon::serialize(sink, as_gear(), opt_attr.value());
+        }
+      }
+
+      /** deserialize
+       */
+      template<typename Iterator, typename OptAttr>
+      inline auto deserialize(bool& pass, Iterator& start, const Iterator& end, OptAttr& opt_attr)  const -> void {
+        using value_type = typename OptAttr::value_type;
+        value_type value{};
+        if(spoon::deserialize(start, end, as_gear(), value)) {
+          opt_attr = value;
+        }
+      }
+
+    };
+  }}}// spoon::engine::detail
+
+namespace spoon { namespace engine {
+
+  struct optional {
+    template<typename FwdGear>
+    constexpr auto inline operator[](FwdGear&& fwd_gear) const {
+        return detail::optional<FwdGear>(std::forward<FwdGear>(fwd_gear));
     }
-
-    /**
-     * optional deserializer
-     */
-    static constexpr inline auto deserialize(auto& start, const auto& end, auto& optional_attr,  auto& ctx) -> bool {
-
-      if(!spoon::traits::expect_optional(this_type{}, ctx)) {
-        return true;
-      }
-      optional_value_type value{};
-
-      auto pass = optional_engine_type::deserialize(start, end, value, ctx);
-      if(pass) {
-        optional_attr = value;
-      }
-      return true;
+    template<typename FwdGear>
+    constexpr auto inline operator[](const FwdGear& fwd_gear) const {
+        return detail::optional<FwdGear>(fwd_gear);
     }
   };
 
-
-
-}}
+}} //spoon::engine
 
 
 namespace spoon {
 
-  template<typename Attr, typename Engine>
-  constexpr inline auto optional(Engine /*engines*/) noexcept -> engine::optional<Attr, Engine> {
-    return engine::optional<Attr, Engine>{};
-  }
+constexpr auto optional = engine::optional{};
 
-}
+} // spoon
+
 
 
 #endif /* SRC_SPOON_ENGINE_OPTIONAL_HPP_ */

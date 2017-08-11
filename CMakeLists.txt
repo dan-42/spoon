@@ -13,13 +13,13 @@ HunterGate(
     SHA1 "6d3a8135ba62726d810fd8c8c7d97980fa6c3b4a"
 )
 project(spoon VERSION 0.0.1)
-#enable_testing()
-#add_subdirectory(src)
+enable_testing()
+add_subdirectory(src)
 
 ## excample
 add_subdirectory(examples)
 
 # Tests
 #if(LIB_SPOON_UNIT_TESTS)
-# add_subdirectory(test)
+ add_subdirectory(test)
 #endif()

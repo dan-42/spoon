@@ -29,8 +29,8 @@ struct with_attr_member : without_attr_base, Type {
   auto& as_t()  const  noexcept { return static_cast< const Type&>(*this);   }
 
   template<typename Sink>
-  auto operator()(bool b, Sink& sink)  const -> void {
-    as_t()(b, sink, attr);
+  auto serialize(bool b, Sink& sink)  const -> void {
+    as_t().serialize(b, sink, attr);
   }
 };
 
@@ -43,8 +43,8 @@ struct with_attr_provider : without_attr_base, Type, AttrProvider {
   auto& as_attribute_provider()  const  noexcept { return static_cast< const AttrProvider&>(*this);   }
 
   template<typename Sink>
-  auto operator()(bool b, Sink& sink)  const -> void {
-    as_type()(b, sink, as_attribute_provider()());
+  auto serialize(bool b, Sink& sink)  const -> void {
+    as_type().serialize(b, sink, as_attribute_provider()());
   }
 
 };

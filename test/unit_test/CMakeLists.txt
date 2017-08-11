@@ -1,6 +1,8 @@
 
+add_new_test("test_de_serialize" "./test_de_serialize.cpp")
 add_new_test("test_binary" "./test_binary.cpp")
-add_new_test("test_variant" "./test_variant.cpp")
-add_new_test("test_seqence" "./test_seqence.cpp")
-#add_new_test("test_repeat" "./test_repeat.cpp")
+add_new_test("test_optional" "./test_optional.cpp")
+#add_new_test("test_variant" "./test_variant.cpp")
+#add_new_test("test_seqence" "./test_seqence.cpp")
+add_new_test("test_repeat" "./test_repeat.cpp")
 #add_new_test("test_complex" "./test_complex.cpp")

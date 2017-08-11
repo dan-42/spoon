@@ -14,43 +14,41 @@
 #include <utility>
 #include <cstdint>
 
-#include <spoon/type/unused.hpp>
-#include <spoon/traits/is_engine.hpp>
-#include <spoon/traits/is_supported_engine_type.hpp>
-
-#include <spoon/binary.hpp>
-#include <spoon/seq.hpp>
-#include <spoon/any.hpp>
-#include <spoon/optional.hpp>
-#include <spoon/repeat.hpp>
-#include <spoon/bits.hpp>
-
+//#include <spoon/type/unused.hpp>
+//#include <spoon/traits/is_engine.hpp>
+//#include <spoon/traits/is_supported_engine_type.hpp>
 
 namespace spoon {
 
-  constexpr auto serialize(auto& sink, auto&& attr, const auto& engine, auto& ctx) -> bool {
-    static_assert(traits::is_engine(engine)          == true, "ERROR provided variable engine is not a spoon::engine type");
-    static_assert(traits::is_supported(engine, attr) == true, "ERROR provided attr is not supported by the provided engine");
-    using engine_type = typename std::decay<decltype(engine)>::type;
-    return engine_type::serialize(sink, std::move(attr), ctx);
+  //todo add static asserts
+  template<typename Sink, typename Engine, typename ...Attr>
+  auto serialize(Sink& sink, const Engine& engine, Attr&&... attr) -> bool {
+    bool pass{true};
+    engine.serialize(pass, sink, std::forward<std::decay_t<decltype(attr)>>(attr)...);
+    return pass;
   }
 
-
-  constexpr auto serialize(auto& sink, auto&& attr, const auto& engine) -> bool  {
-   return serialize(sink, std::move(attr), engine, spoon::type::unused);
+  template<typename Sink, typename Engine>
+  auto serialize(Sink& sink, const Engine& engine) -> bool {
+    bool pass{true};
+    engine.serialize(pass, sink);
+    return pass;
   }
 
 //-------------------------------------------------------------------------------------------------
 
-  constexpr auto deserialize(auto& start, const auto& end, auto& attr, const auto& engine, auto& ctx) -> bool {
-    static_assert(traits::is_engine(engine)          == true, "ERROR provided variable engine is not a spoon::engine type");
-    static_assert(traits::is_supported(engine, attr) == true, "ERROR provided attr is not supported by the provided engine");
-    using engine_type = typename std::decay<decltype(engine)>::type;
-    return engine_type::deserialize(start, end, attr, ctx);
+  template<typename Iterator, typename Engine, typename ...Attr>
+  auto deserialize(Iterator& start, const Iterator& end, const Engine& engine, Attr&... attr) -> bool {
+    bool pass{true};
+    engine.deserialize(pass, start, end, attr...);
+    return pass;
   }
 
-  constexpr auto deserialize(auto& start, const auto& end, auto& attr, const auto& engine) -> bool {
-   return deserialize(start, end, attr, engine, spoon::type::unused);
+  template<typename Iterator, typename Engine>
+  auto deserialize(Iterator& start, const Iterator& end, const Engine& engine) -> bool {
+    bool pass{true};
+    engine.deserialize(pass, start, end);
+    return pass;
   }
 
 }/*namespace spoon*/
