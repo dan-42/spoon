@@ -24,11 +24,35 @@ namespace spoon { namespace detail {
     return std::initializer_list<int>{(std::ref(f)(std::forward<Ts>(a)),0)...}, f;
   }
 
-
+  /**
+   * calls F with every type Ts default constructed
+   */
   template<typename F, typename... Ts>
   F for_each_type(F f) {
     return std::initializer_list<int>{(std::ref(f)( Ts{}  ),0)...}, f;
   }
+
+
+
+  /**
+   *  calls F with every element of tuple f(t.get<0>() ), f(t.get<1>() ), ..., f(t.get<I>() )
+   *  Tuple must have member function get<Idx>()
+   */
+  template <class F, class Tuple, std::size_t... I>
+  constexpr auto for_each_element(F&& f, const Tuple& t, std::index_sequence<I...>) -> F {
+    return std::initializer_list<int>{(std::ref(f)(t. template  get<I>()), 0)...}, f;
+  }
+
+  /**
+   *  calls F with every element of tuple f(t.get<0>() ), f(t.get<1>() ), ..., f(t.get<I>() )
+   *  Tuple must have member function get<Idx>()
+   *  Tuple must have static constexpr size_t number_of_elements
+   */
+  template <class F, class Tuple>
+  constexpr auto for_each_element(F&& f, const Tuple& t) -> F {
+    return for_each_element(std::forward<F>(f), t, std::make_index_sequence<Tuple::number_of_elements>{});
+  }
+
 
 
 }}

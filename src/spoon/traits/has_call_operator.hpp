@@ -10,7 +10,6 @@
 #ifndef SRC_SPOON_TRAITS_HAS_CALL_OPERATOR_HPP_
 #define SRC_SPOON_TRAITS_HAS_CALL_OPERATOR_HPP_
 
-#include <spoon/engine/base.hpp>
 #include <type_traits>
 
 namespace spoon { namespace traits {

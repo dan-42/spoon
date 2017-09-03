@@ -14,17 +14,12 @@
 #include <utility>
 #include <cstdint>
 
-//#include <spoon/type/unused.hpp>
-//#include <spoon/traits/is_engine.hpp>
-//#include <spoon/traits/is_supported_engine_type.hpp>
-
 namespace spoon {
 
-  //todo add static asserts
   template<typename Sink, typename Engine, typename ...Attr>
-  auto serialize(Sink& sink, const Engine& engine, Attr&&... attr) -> bool {
+  auto serialize(Sink& sink, const Engine& engine, const Attr&... attr) -> bool {
     bool pass{true};
-    engine.serialize(pass, sink, std::forward<std::decay_t<decltype(attr)>>(attr)...);
+    engine.serialize(pass, sink, attr...);
     return pass;
   }
 
@@ -37,10 +32,10 @@ namespace spoon {
 
 //-------------------------------------------------------------------------------------------------
 
-  template<typename Iterator, typename Engine, typename ...Attr>
-  auto deserialize(Iterator& start, const Iterator& end, const Engine& engine, Attr&... attr) -> bool {
+  template<typename Iterator, typename Engine, typename Attr>
+  auto deserialize(Iterator& start, const Iterator& end, const Engine& engine, Attr& attr) -> bool {
     bool pass{true};
-    engine.deserialize(pass, start, end, attr...);
+    engine.deserialize(pass, start, end, attr);
     return pass;
   }
 

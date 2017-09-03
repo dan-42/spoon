@@ -15,8 +15,13 @@
 #include <iostream>
 
 #include <spoon.hpp>
+#include <spoon/any.hpp>
+#include <spoon/binary.hpp>
 
-using varinat_t = mapbox::util::variant<bool, uint32_t, double>;
+#include <boost/variant.hpp>
+
+//using varinat_t = mapbox::util::variant<bool, uint32_t, double>;
+using varinat_t = boost::variant<bool, uint32_t, uint16_t>;
 
 
 
@@ -50,12 +55,13 @@ BOOST_TEST(success == true);
 BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
 
 
-  constexpr auto engine = spoon::any<varinat_t>( spoon::float64,  spoon::uint32, spoon::bool8);
+  //constexpr auto engine = spoon::any<varinat_t>( spoon::big_endian::bool8,  spoon::big_endian::uint32, spoon::big_endian::uint16);
+  constexpr auto engine = spoon::any<varinat_t>( spoon::big_endian::uint32, spoon::big_endian::uint16, spoon::big_endian::bool8);
   std::vector<uint8_t> binary_data{};
 
   {
     varinat_t var = uint32_t{1337};
-    auto success = spoon::serialize(binary_data, var, engine);
+    auto success = spoon::serialize(binary_data, engine, var);
     BOOST_TEST(success == true);
 
     BOOST_TEST( binary_data.size() == size_t{4} );
@@ -69,19 +75,20 @@ BOOST_AUTO_TEST_CASE( test_spoon_variant_simple ) {
     auto     start = binary_data.begin();
     const auto end = binary_data.end();
 
-    auto  success = spoon::deserialize(start, end, var, engine);
+    auto  success = spoon::deserialize(start, end, engine, var);
 
     BOOST_TEST(success == true);
     BOOST_TEST((start == end), "start != end");
 
-    struct result_visitor {
+    struct result_visitor : public boost::static_visitor<> {
       void operator()(bool r) const     { BOOST_TEST(false,               " it is bool"); }
+      void operator()(uint16_t e) const { BOOST_TEST(e == uint16_t{1337}, " it is uint16_t but value wrong"); }
       void operator()(uint32_t e) const { BOOST_TEST(e == uint32_t{1337}, " it is uint but value wrong"); }
-      void operator()(double e) const   { BOOST_TEST(false,               " it is double  "); }
     };
 
     result_visitor visitor;
-    mapbox::util::apply_visitor(visitor, var);
+    boost::apply_visitor(visitor, var);
+   // mapbox::util::apply_visitor(visitor, var);
   }
 
 }

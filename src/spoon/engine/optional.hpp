@@ -13,7 +13,7 @@
 
 #include  <spoon/traits/has_call_operator.hpp>
 #include  <spoon.hpp>
-
+#include <boost/optional.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -25,7 +25,7 @@ namespace spoon { namespace engine {
     template<typename Gear, typename ExpectedProvider>
     struct optional_with_expected_provider  : Gear , ExpectedProvider {
       using size_type = std::size_t;
-
+      using attribute_type = boost::optional<typename Gear::attribute_type>;
 
       template<typename FwdGear, typename FwdExpectedProvider>
       constexpr optional_with_expected_provider(FwdGear&& fwd_gear, FwdExpectedProvider&& fwd_expected_provider)
@@ -66,6 +66,8 @@ namespace spoon { namespace engine {
     template<typename Gear>
     struct optional  : Gear {
 
+      using attribute_type =  boost::optional<typename Gear::attribute_type>;
+
       template<typename FwdGear>
       constexpr optional(FwdGear&& fwd_gear) : Gear(std::forward<FwdGear>(fwd_gear)) {}
 
@@ -75,7 +77,6 @@ namespace spoon { namespace engine {
       constexpr inline auto operator()(ExpectedProvider&& expected_provider)  const {
         return optional_with_expected_provider<Gear, ExpectedProvider>{std::move(as_gear()), std::forward<ExpectedProvider>(expected_provider)};
       }
-
 
       /**
        *

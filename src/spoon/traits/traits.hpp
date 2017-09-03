@@ -10,9 +10,7 @@
 #ifndef SRC_SPOON_TRAITS_TRAITS_HPP_
 #define SRC_SPOON_TRAITS_TRAITS_HPP_
 
-#include <spoon/engine/base.hpp>
 #include <type_traits>
-
 
 namespace spoon { namespace traits { namespace detail {
     inline auto serialize_to_sink(auto &sink, auto&& attr) -> bool {

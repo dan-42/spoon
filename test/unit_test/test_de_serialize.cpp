@@ -65,6 +65,30 @@ BOOST_AUTO_TEST_CASE( test_spoon_serialize_2 ) {
 }
 
 
+BOOST_AUTO_TEST_CASE( test_spoon_serialize_with_attr ) {
+  auto my_value = 123;
+
+  auto my_gear = spoon::engine::make_geare<int>([&my_value](auto& pass, auto& sink, const auto& attr){
+    if(pass) {
+      BOOST_TEST(attr == 42);
+      my_value  = 42;
+    }
+  }, [&my_value](auto& pass, auto& start, const auto& end, auto& attr){
+    if(pass) {
+      my_value  = 42;
+    }
+  });
+
+  auto my_gear_with_attr = my_gear([](){return int{42};});
+
+  std::vector<uint8_t> sink{};
+
+  BOOST_TEST(spoon::serialize(sink, my_gear_with_attr) == true );
+
+  BOOST_TEST(my_value == 42);
+}
+
+
 BOOST_AUTO_TEST_CASE( test_spoon_deserialize_1 ) {
   auto my_value = 123;
   auto my_gear = spoon::engine::make_geare<int>([&my_value](auto& pass, auto& sink, auto&& attr){

@@ -27,8 +27,8 @@
 #include <vector>
 
 #include <spoon.hpp>
-
-
+#include <spoon/seq.hpp>
+#include <spoon/binary.hpp>
 
 
 struct pod_type {
@@ -45,11 +45,11 @@ BOOST_AUTO_TEST_SUITE( test_spoon_seq )
 
 BOOST_AUTO_TEST_CASE( test_spoon_seq_simple ) {
 
-  constexpr auto engine = spoon::seq<pod_type>( spoon::bool8, spoon::uint32, spoon::float64);
+  constexpr auto engine = spoon::seq<pod_type>( spoon::big_endian::bool8, spoon::big_endian::uint32, spoon::big_endian::float64);
   std::vector<uint8_t> binary_data{};
   {
     pod_type var{true, 1337, 3.14};
-    auto success = spoon::serialize(binary_data, var, engine);
+    auto success = spoon::serialize(binary_data, engine, var);
     BOOST_TEST(success == true);
 
     BOOST_TEST( binary_data.size() == size_t{13} );
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE( test_spoon_seq_simple ) {
     pod_type pod;
     auto     start = binary_data.begin();
     const auto end = binary_data.end();
-    auto  success = spoon::deserialize(start, end, pod, engine);
+    auto  success = spoon::deserialize(start, end, engine, pod);
     BOOST_TEST(success == true);
     BOOST_TEST((start == end), "start != end");
     BOOST_TEST(pod.my_bool    == true);

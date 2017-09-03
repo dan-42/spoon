@@ -31,16 +31,9 @@
 #include <spoon/binary.hpp>
 
 
-
 using my_list_t = std::vector<uint32_t>;
 
-
-
-
 BOOST_AUTO_TEST_SUITE( test_spoon_repeat )
-
-
-
 
 
 BOOST_AUTO_TEST_CASE( test_spoon_repeat_simple ) {

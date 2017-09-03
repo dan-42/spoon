@@ -11,50 +11,136 @@
 #ifndef SRC_SPOON_DETAIL_WITHOUT_ATTR_HPP_
 #define SRC_SPOON_DETAIL_WITHOUT_ATTR_HPP_
 
+#include <spoon/engine/base.hpp>
+
 #include  <type_traits>
 #include  <utility>
 
 namespace spoon { namespace detail {
 
+///--------------------------------------------------------------------------------------------------------------------
+struct with_attr_member_base{};
 
-struct without_attr_base{};
+///--------------------------------------------------------------------------------------------------------------------
+template<typename Gear, typename Return = typename std::is_base_of<with_attr_member_base, Gear>::type>
+constexpr auto is_with_attr(const Gear&) -> Return {
+  return {};
+}
 
-template<typename Type, typename Attr>
-struct with_attr_member : without_attr_base, Type {
+///--------------------------------------------------------------------------------------------------------------------
+template<typename Gear, typename AttrType>
+struct with_attr_member  : with_attr_member_base, ::spoon::engine::gear<Gear, AttrType> {
 
-  const Attr attr;
-
-  constexpr with_attr_member(Attr&& a) : attr(std::move(a)){}
-
-  auto& as_t()  const  noexcept { return static_cast< const Type&>(*this);   }
-
-  template<typename Sink>
-  auto serialize(bool b, Sink& sink)  const -> void {
-    as_t().serialize(b, sink, attr);
-  }
-};
-
-template<typename Type, typename AttrProvider>
-struct with_attr_provider : without_attr_base, Type, AttrProvider {
-
-  constexpr with_attr_provider(AttrProvider&& a) : AttrProvider(std::move(a)){}
-
-  auto& as_type()  const  noexcept { return static_cast< const Type&>(*this);   }
-  auto& as_attribute_provider()  const  noexcept { return static_cast< const AttrProvider&>(*this);   }
-
-  template<typename Sink>
-  auto serialize(bool b, Sink& sink)  const -> void {
-    as_type().serialize(b, sink, as_attribute_provider()());
+  ///------------------------------------------------------------------------------------------------------------------
+  constexpr with_attr_member(Gear&& gear, AttrType&& attr)
+    : ::spoon::engine::gear<Gear, AttrType>{std::forward<Gear>(gear)}, attr_{std::forward<AttrType>(attr)} {
   }
 
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Sink>
+  constexpr inline auto serialize(bool& pass, Sink& sink) const -> void {
+    as_gear().serialize(pass, sink, attr_);
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Itr>
+  constexpr inline auto deserialize(bool& pass, Itr& begin, const Itr& end) const -> void {
+    AttrType deserialized_value{};
+    as_gear().deserialize(pass, begin, end, deserialized_value);
+    if(pass) {
+      pass = (attr_ == deserialized_value);
+    }
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Itr, typename Attr>
+  constexpr inline auto deserialize(bool& pass, Itr& begin, const Itr& end, Attr& attr) const -> void {
+    deserialize(pass, begin, end);
+    if(pass) {
+      attr = attr_;
+    }
+  }
+
+private:
+  ///------------------------------------------------------------------------------------------------------------------
+  constexpr inline auto as_gear() const -> const ::spoon::engine::gear<Gear, AttrType>& {
+    return *static_cast<const ::spoon::engine::gear<Gear, AttrType>*>(this);
+  }
+
+  const AttrType attr_;
 };
 
 
+///--------------------------------------------------------------------------------------------------------------------
+struct with_attr_provider_base{};
 
-template<class T>
-struct expect_attribute : std::is_base_of<detail::without_attr_base, T> {};
+///--------------------------------------------------------------------------------------------------------------------
+template<typename Gear, typename Return = typename std::is_base_of<with_attr_provider_base, Gear>::type>
+constexpr auto is_with_attr_provider(const Gear&) -> Return {
+  return {};
+}
+
+///--------------------------------------------------------------------------------------------------------------------
+template<typename Gear, typename AttributeType, typename AttrProvider>
+struct with_attr_provider  : with_attr_provider_base
+                           , ::spoon::engine::gear<Gear, AttributeType>
+                           , AttrProvider {
+
+  ///------------------------------------------------------------------------------------------------------------------
+  constexpr with_attr_provider(Gear&& gear, AttrProvider&& attr)
+    : ::spoon::engine::gear<Gear, AttributeType>{std::forward<Gear>(gear)}, AttrProvider{std::forward<AttrProvider>(attr)} {
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Sink>
+  constexpr inline auto serialize(bool& pass, Sink& sink) const -> void {
+    as_gear().serialize(pass, sink, as_provider()());
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Itr>
+  constexpr inline auto deserialize(bool& pass, Itr& begin, const Itr& end) const -> void {
+    AttributeType deserialized_value{};
+    as_gear().deserialize(pass, begin, end, deserialized_value);
+    if(pass) {
+      pass = (deserialized_value == as_provider()());
+    }
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Itr, typename Attr>
+  constexpr inline auto deserialize(bool& pass, Itr& begin, const Itr& end, Attr& attr) const -> void {
+    AttributeType deserialized_value{};
+    as_gear().deserialize(pass, begin, end, deserialized_value);
+    if(pass) {
+      const auto expected_value = as_provider()();
+      pass = (deserialized_value == expected_value);
+      if(pass) {
+        attr = expected_value;
+      }
+    }
+  }
+
+private:
+  ///------------------------------------------------------------------------------------------------------------------
+  constexpr inline auto as_gear() const -> const ::spoon::engine::gear<Gear, AttributeType>& {
+    return *static_cast<const ::spoon::engine::gear<Gear, AttributeType>*>(this);
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  constexpr inline auto as_provider() const -> const AttrProvider& {
+    return *static_cast<const AttrProvider*>(this);
+  }
+
+};
+
+///------------------------------------------------------------------------------------------------------------------
+template<class T, typename TrueFalseType = std::integral_constant<bool,
+                                           (  std::is_base_of<with_attr_member_base,   T>::value
+                                           || std::is_base_of<with_attr_provider_base, T>::value)> >
+struct expect_attribute : TrueFalseType {};
 
 
-}}
+}}//sppon::detail
 
 #endif /* SRC_SPOON_DETAIL_WITHOUT_ATTR_HPP_ */

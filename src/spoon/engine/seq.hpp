@@ -10,8 +10,9 @@
 #ifndef SRC_SPOON_ENGINE_SEQ_HPP_
 #define SRC_SPOON_ENGINE_SEQ_HPP_
 
-#include  <spoon/engine/base.hpp>
-#include  <spoon/traits/is_supported_engine_type.hpp>
+#include <spoon/engine/base.hpp>
+#include <spoon.hpp>
+#include <spoon/traits/is_supported_engine_type.hpp>
 
 #include <boost/fusion/sequence/intrinsic/at.hpp>
 
@@ -57,9 +58,7 @@ namespace detail {
 
   //todo add tag dispatching for fusion and std::tuples
   template<typename Attr, typename... Engines>
-  struct seq : base {
-    using tag_type          = tag::seq;
-    using has_context       = std::false_type;
+  struct seq {
     using attr_type         = Attr;
 
     using seq_engine_type   = std::tuple<Engines...>;
@@ -68,37 +67,31 @@ namespace detail {
     /**
      * seq serializer
      */
-    static constexpr inline auto serialize(auto& sink, auto&& seq_attr, auto& ctx) -> bool {
+    constexpr inline auto serialize(bool& pass, auto& sink, const auto& seq_attr) const -> void {
       static_assert(boost::fusion::size<attr_type>(seq_attr) == number_of_engines::value, "ERROR seq sizes does not match attr and engine");
-      bool pass          = true;
-      const auto handler = [&pass, &sink, &ctx](auto&& engine, auto&& attr) {
+      pass = true;
+      const auto handler = [&pass, &sink](auto&& engine, auto&& attr) {
                              if(pass) {
-                               pass = ::spoon::serialize(sink, attr, engine, ctx);
+                               pass = ::spoon::serialize(sink, engine, attr);
                              }
                            };
       detail::for_each_pair<number_of_engines::value>(seq_engine_type{}, seq_attr, handler);
-
-      return pass;
     }
 
     /**
      * seq deserializer
      */
-    static constexpr inline auto deserialize(auto& start, const auto& end, auto& seq_attr,  auto& ctx) -> bool {
+    constexpr inline auto deserialize(bool& pass, auto& start, const auto& end, auto& seq_attr) const -> void {
       static_assert(boost::fusion::size<attr_type>(seq_attr) == number_of_engines::value, "ERROR seq sizes does not match attr and engine");
-      bool pass          = true;
-      const auto handler = [&pass, &start, &end, &ctx](auto&& engine, auto&& attr) {
-                                       if(pass) {
-                                         pass = ::spoon::deserialize(start, end, attr, engine, ctx);
-                                       }
-                                     };
+      pass          = true;
+      const auto handler = [&pass, &start, &end](const auto& engine, auto& attr) {
+                             if(pass) {
+                               pass = ::spoon::deserialize(start, end, engine, attr);
+                             }
+                           };
       detail::for_each_pair<number_of_engines::value>(seq_engine_type{}, seq_attr, handler);
-
-      return pass;
     }
   };
-
-
 
 }}
 
@@ -109,7 +102,6 @@ namespace spoon {
   constexpr inline auto seq(Engines... /*engines*/) noexcept -> engine::seq<Attr, Engines...> {
     return engine::seq<Attr, Engines...>{};
   }
-
 
 }
 

@@ -54,9 +54,37 @@ auto main(int argc, char* args[]) -> int  {
   my_sink_type my_sink;
   my_var_t my_var;
   my_var = uint32_t{42};
-  constexpr auto my_any = spoon::big_endian::uint32 | spoon::big_endian::bool8 | spoon::big_endian::uint16;
+ // constexpr auto my_any = spoon::big_endian::uint32 | spoon::big_endian::bool8 | spoon::big_endian::uint16;
+  auto my_any = spoon::any<my_var_t>(spoon::big_endian::bool8, spoon::big_endian::uint16, spoon::big_endian::uint32);//, spoon::big_endian::uint32, spoon::big_endian::uint32);
+  bool pass = true;
 
-   spoon::serialize(my_sink, my_any, my_var);
+  my_any.what(std::cout);
+
+  //auto my_any2 = my_any([](){return uint32_t{1337}; });
+
+
+
+ // my_any.serialize(pass, my_sink, my_var);
+
+//  constexpr auto my_any = spoon::big_endian::uint32;
+
+//  constexpr spoon::engine::any<decltype(spoon::big_endian::uint32), decltype(spoon::big_endian::bool8)> my_any(spoon::big_endian::uint32, spoon::big_endian::bool8);
+
+
+//  constexpr spoon::engine::detail::_tuple_impl<
+//      std::index_sequence_for<
+//        decltype(spoon::big_endian::uint32), decltype(spoon::big_endian::bool8)
+//      >,
+//      decltype(spoon::big_endian::uint32), decltype(spoon::big_endian::bool8)
+//    > gears{spoon::big_endian::uint32, spoon::big_endian::bool8};
+//
+//  constexpr auto my_any = gears.template get<0>();
+//  bool pass = true;
+//
+//  my_any.serialize(pass, my_sink, uint32_t {22});
+   //spoon::serialize(my_sink, my_any, my_var);
+//   spoon::serialize(my_sink, my_any2);
+
 
  // return sink.size();
 return 0;

@@ -11,7 +11,8 @@
 #define SRC_SPOON_ENGINE_ANY_HPP_
 
 #include <spoon/traits/has_call_operator.hpp>
-#include <spoon/engine/base.hpp>
+#include <spoon/engine/gear.hpp>
+#include <spoon/detail/for_each.hpp>
 //#include <mapbox/variant.hpp>
 #include <boost/variant.hpp>
 #include <tuple>
@@ -20,105 +21,161 @@
 #include <type_traits>
 #include <limits>
 #include <cassert>
+#include <iostream>
+
+#define SPOON_DETAIL_FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
 
 namespace spoon { namespace engine {
 
 namespace detail {
 
-  template<typename Gear, typename Sink>
-  class any_visitor : public boost::static_visitor<> {
-  public:
+///--------------------------------------------------------------------------------------------------------------------
+template<typename... Ts>
+struct duplication_guard : Ts... {
+  constexpr duplication_guard(){};
+};
 
-    constexpr any_visitor(bool& pass, Sink& sink, const Gear& gear) : pass_{pass}, sink_{sink}, gear_{gear} {
-    }
+///--------------------------------------------------------------------------------------------------------------------
+template <std::size_t I, typename T>
+struct _tuple_leaf {
+  constexpr _tuple_leaf(const T& t) : _value{t} {}
+  using type = T;
+  const T& _value;
+};
 
-    template<typename T>
-    auto operator()(T t) const -> void {
-        gear_.serialize_attr(pass_, sink_, std::move(t));
-    }
+///--------------------------------------------------------------------------------------------------------------------
+template <typename Is, typename ...Ts>
+struct _tuple_impl;
 
-  private:
-    bool& pass_;
-    Sink& sink_;
-    const Gear& gear_;
-  };
+///--------------------------------------------------------------------------------------------------------------------
+template <std::size_t ...Is, typename ...Ts>
+struct _tuple_impl<std::index_sequence<Is...>, Ts...>  : _tuple_leaf<Is, Ts>...
+{
+  ///------------------------------------------------------------------------------------------------------------------
+  using this_type = _tuple_impl<std::index_sequence<Is...>, Ts...> ;
+  static constexpr size_t number_of_elements = sizeof...(Is);
 
-
-  template<typename Sink, typename VarAttr, typename Gear>
-  auto visit_and_serialize(bool& pass, Sink& sink, VarAttr var_attr, const Gear& gear) {
-    any_visitor<Gear, Sink> visitor{pass, sink, gear};
-    boost::apply_visitor( visitor, var_attr);
-  }
-}
-
-struct alternative_base{};
-
-
-template<typename T>
-struct is_alternative : std::false_type{};
-
-template<typename T1, typename T2>
-struct alternative : private alternative_base, T1, T2 {
-
-  using attribute_type = typename T1::attribute_type;
-  using this_type = alternative<T1, T2>;
-
-  template<typename FwdT1, typename FwdT2>
-  constexpr alternative(FwdT1&& fwd_t1, FwdT2&& fwd_t2) : T1{std::forward<FwdT1>(fwd_t1)}, T2{std::forward<FwdT2>(fwd_t2)}
-  {}
-
-  auto& as_t1() const noexcept { return static_cast< const T1&>(*this); }
-  auto& as_t2() const noexcept { return static_cast< const T2&>(*this); }
-
-  // t2 is also an alternative
-  //so we call serialize_attr as we already visited the variant
-  template<typename Sink, typename Attr>
-  auto serialize_attr(std::true_type, bool& pass, Sink& sink, Attr& attr) const {
-    as_t1().serialize_attr(pass, sink, attr);
+  ///------------------------------------------------------------------------------------------------------------------
+  constexpr _tuple_impl(const Ts& ...ts) : _tuple_leaf<Is, Ts>{ts}... {
   }
 
-  //t2 is the last type
-  template<typename Sink, typename Attr>
-  auto serialize_attr(std::false_type, bool& pass, Sink& sink, Attr& attr) const {
-    as_t1().serialize(pass, sink, attr);
+  ///------------------------------------------------------------------------------------------------------------------
+  template <std::size_t I, typename T>
+  static constexpr const _tuple_leaf<I, T>& _select( const _tuple_leaf<I, T>& leaf) noexcept {
+    return leaf;
   }
 
-  template<typename Sink, typename Attr>
-  auto serialize_attr( bool& pass, Sink& sink, Attr attr) const {
-    using is_t1_an_alternative = typename std::is_base_of<alternative_base, T1>::type;
-    serialize_attr(is_t1_an_alternative{}, pass, sink, attr);
-
-    if(!pass) {
-      as_t2().serialize(pass, sink, attr);
-    }
-    else {
-      pass = true;
-    }
-  }
-
-  // entry point
-  template<typename Sink, typename VariantAttr>//, typename std::enable_if_t<true>>
-  auto serialize(bool& pass, Sink& sink, VariantAttr attr) const {
-
-    detail::visit_and_serialize<Sink, VariantAttr, this_type>(pass, sink, std::move(attr), *this);
+  ///------------------------------------------------------------------------------------------------------------------
+  template <std::size_t I>
+  constexpr const auto& get() const noexcept {
+    // let overload resolution take its course
+    return _select<I>(*this)._value;
   }
 };
 
-template <typename T1, typename T2>
-struct is_alternative <alternative<T1, T2>>: std::true_type{};
-
-
-template<typename T1, typename T2, typename = std::enable_if_t<std::is_base_of<base, T1>::value && std::is_base_of<base, T2>::value> >
-constexpr auto operator|(T1&& a, T2&& b) {
-  return alternative<T1, T2>(std::forward<T1>(a), std::forward<T2>(b));
+///--------------------------------------------------------------------------------------------------------------------
+constexpr auto any_serialize_when_supported(std::true_type, bool& pass, auto& sink, const auto& attr, const auto& gear) -> void {
+  gear.serialize(pass, sink, attr);
 }
 
-template<typename T1, typename T2, typename = std::enable_if_t<std::is_base_of<base, T1>::value && std::is_base_of<base, T2>::value> >
-constexpr auto operator|(const T1 &a, const T2 &b) {
-  return alternative<T1, T2>(a, b);
+///--------------------------------------------------------------------------------------------------------------------
+constexpr auto any_serialize_when_supported(std::false_type, bool& , auto& , const auto&, const auto& ) -> void {
 }
 
-//alternative<alternative<alternative<T3, T4>>>
+///--------------------------------------------------------------------------------------------------------------------
+template<typename Gears, typename Sink>
+class any_visitor : public boost::static_visitor<> {
+public:
+
+  ///------------------------------------------------------------------------------------------------------------------
+  constexpr any_visitor(bool& pass, Sink& sink, const Gears& gears) : pass_{pass}, sink_{sink}, gears_{gears} {
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename T>
+  auto operator()(const T& t) const -> void {
+
+    auto foo = [this, &t](const auto& gear) {
+      if(pass_ == false) {
+        using gear_attribute_type = typename std::decay_t<decltype(gear)>::attribute_type;
+        using is_attr_type_supported = typename std::is_same<gear_attribute_type, T>::type;
+        any_serialize_when_supported(is_attr_type_supported{}, pass_, sink_, t, gear);
+      }
+    };
+    ::spoon::detail::for_each_element(foo, gears_);
+  }
+
+private:
+  bool& pass_;
+  Sink& sink_;
+  const Gears& gears_;
+};
+
+///--------------------------------------------------------------------------------------------------------------------
+template<typename Sink, typename VarAttr, typename Gears>
+auto visit_and_serialize(bool& pass, Sink& sink, const VarAttr& var_attr, const Gears& gears) {
+  any_visitor<Gears, Sink> visitor{pass, sink, gears};
+  boost::apply_visitor( visitor, var_attr);
+}
+
+} //detail
+
+
+///--------------------------------------------------------------------------------------------------------------------
+template<typename VariantAttr, typename... Gears>
+struct any : gear< any<VariantAttr, Gears...>,  VariantAttr>{
+
+  ///------------------------------------------------------------------------------------------------------------------
+  using gears_type = detail::_tuple_impl<std::index_sequence_for<Gears...>, Gears...>;
+  using number_of_gears = std::integral_constant<size_t, sizeof...(Gears)>;
+
+  ///------------------------------------------------------------------------------------------------------------------
+  const gears_type gears;
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename OStream>
+  constexpr inline  auto what(OStream& os) -> void {
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  constexpr any(const Gears& ...fwd_gears) : gears{fwd_gears...} {
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Sink, typename Attr>
+  auto serialize_attr(bool& pass, Sink& sink, Attr attr) const {
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  constexpr inline const auto& const_this() const noexcept {
+    return (*this);
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Sink, typename Attr>
+  auto serialize(bool& pass, Sink& sink, const Attr& attr) const {
+    pass = false;
+    detail::visit_and_serialize<Sink, Attr, decltype(gears)>(pass, sink, attr, gears);
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Itr, typename Attr>
+  auto deserialize(bool& pass, Itr& start, const Itr& end, Attr& attr) const {
+    pass = false;
+    auto foo = [&](const auto& gear) {
+      if(pass == false) {
+        using gear_attribute_type = typename std::decay_t<decltype(gear)>::attribute_type;
+        gear_attribute_type tmp{};
+        gear.deserialize(pass, start, end, tmp);
+        if(pass) {
+          attr = tmp;
+        }
+      }
+    };
+    ::spoon::detail::for_each_element(foo, gears);
+  }
+};
+
 
 }} //spoon::engine
 
@@ -127,134 +184,14 @@ constexpr auto operator|(const T1 &a, const T2 &b) {
 
 namespace spoon {
 
-using ::spoon::engine::operator|;
-
-//auto v = any[a, b, c, f];
+///--------------------------------------------------------------------------------------------------------------------
+template<typename VariantAttr, typename... Gears>
+constexpr auto any(const Gears&... gears) -> spoon::engine::any<VariantAttr, Gears...> {
+  constexpr ::spoon::engine::detail::duplication_guard<std::decay_t<Gears>...> guard_type{};
+  return spoon::engine::any<VariantAttr, Gears...> {gears...};
+}
 
 } // spoon
 
-
-
-
-
-
-
-
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//namespace spoon { namespace engine {
-//
-//namespace detail {
-//
-//  template<typename Handler>
-//  struct any_visitor {
-//
-//    any_visitor(const Handler& handler) : handler_(handler) {}
-//
-//    template<typename Attr>
-//    void operator()(Attr&& attr) const {
-//      handler_(attr);
-//    }
-//
-//    const Handler&   handler_;
-//  };
-//
-//
-//
-//} //detail
-//
-//
-//
-//
-//
-//  //todo add tag dispatching for fusion and std::tuples
-//  template<typename Attr, typename... Engines>
-//  struct any : base {
-//    using tag_type          = tag::any;
-//    using has_context       = std::false_type;
-//    using attr_type         = Attr;
-//
-//    using any_engine_type   = std::tuple<Engines...>;
-//    using number_of_engines = std::integral_constant<std::size_t, sizeof...(Engines)>;
-//
-//    /**
-//     * any serializer
-//     */
-//    static constexpr inline auto serialize(auto& sink, auto&& variant_attr, auto& ctx) -> bool {
-//
-//      bool pass                      = false;
-//      const auto variant_handler = [&pass, &sink, &ctx](auto&& attr) {
-//
-//        const auto engine_handler = [&pass, &sink, &attr, &ctx](auto&& engine) {
-//          if(!pass) {
-//
-//            using engine_type = std::decay_t<decltype(engine)>;
-//            using scope_attr_type = std::decay_t<decltype(attr)>;
-//            using supported = typename spoon::traits::is_supported_attr_type<engine_type, scope_attr_type>::type;
-//
-//            auto handler = [&sink, &pass, &ctx, captured_attr = std::move(attr) ]() mutable {
-//              // direct call because global type_check would yield error on static_assert!
-//              pass = engine_type::serialize(sink, std::move(captured_attr), ctx);
-//            };
-//            spoon::detail::invoke_if(supported{}, std::move(handler));
-//          }
-//        };
-//        using engine_handler_type = std::decay_t<decltype(engine_handler)>;
-//        spoon::detail::for_each_type<engine_handler_type, Engines...>(engine_handler);
-//      };
-//
-//      using handler_type = std::decay_t<decltype(variant_handler)>;
-//      detail::any_visitor<handler_type> any_visitor{variant_handler};
-//      mapbox::util::apply_visitor(any_visitor, variant_attr);
-//
-//      return pass;
-//    }
-//
-//    /**
-//     * any deserializer
-//     */
-//    static constexpr inline auto deserialize(auto& start, const auto& end, auto& variant_attr,  auto& ctx) -> bool {
-//
-//      bool pass = false;
-//
-//      const auto engine_handler = [&pass, &start, &end, &variant_attr, &ctx](auto&& engine) {
-//        if(!pass) {
-//
-//          using engine_type = std::decay_t<decltype(engine)>;
-//          using attr_type = typename engine_type::attr_type;
-//
-//          attr_type attr{};
-//
-//          pass = ::spoon::deserialize(start, end, attr, engine, ctx);
-//          if(pass) {
-//            variant_attr = attr;
-//          }
-//        }
-//      };
-//      using handler_type = std::decay_t<decltype(engine_handler)>;
-//      spoon::detail::for_each_type<handler_type, Engines...>(engine_handler);
-//      return pass;
-//    }
-//  };
-//
-//
-//
-//}}
-//
-//
-//namespace spoon {
-//
-//  template<typename Attr, typename... Engines>
-//  constexpr inline auto any(Engines... /*engines*/) noexcept -> engine::any<Attr, Engines...> {
-//    return engine::any<Attr, Engines...>{};
-//  }
-//
-//
-//}
-//
-//
 
 #endif /* SRC_SPOON_ENGINE_ANY_HPP_ */

@@ -1,8 +1,11 @@
-/*
- * repeat.hpp
+/**
+ * Copyright (C) 2017 by dan (Daniel Friedrich)
  *
- *  Created on: Jul 4, 2017
- *      Author: dan
+ * This file is part of project spoon
+ * a c++14 (de)serialization library for (binary) protocols
+ *
+ * Distributed under the Boost Software License, Version 1.0. (See accompanying
+ * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
 #ifndef SRC_SPOON_ENGINE_REPEAT_HPP_
@@ -37,15 +40,14 @@ namespace spoon { namespace engine {
        * handling infinitive, min and max
        */
       template<typename Sink, typename Attr>
-      inline auto serialize(bool& pass, Sink& sink, Attr&& attr)  const -> void {
-        using element_type = typename std::decay_t<Attr>::value_type;
+      inline auto serialize(bool& pass, Sink& sink, const Attr& attr)  const -> void {
         const auto expected_count = as_count_provider()();
         size_type count = 0;
-        for(decltype(auto) a : attr) {
+        for(const auto& a : attr) {
           if(pass == false || count >= expected_count) {
             return;
           }
-          as_gear().serialize(pass, sink, std::forward<element_type>(a));
+          as_gear().serialize(pass, sink, a);
           ++count;
         }
         if(count != expected_count) {
@@ -113,19 +115,18 @@ namespace spoon { namespace engine {
         return repeat_with_count_provider<Gear, CountProvider>{std::move(as_gear()), std::forward<CountProvider>(count_provider)};
       }
 
-
       /**
        * handling infinitive, min and max
        */
       template<typename Sink, typename Attr>
-      inline auto serialize(bool& pass, Sink& sink, Attr&& attr)  const -> void {
+      inline auto serialize(bool& pass, Sink& sink, const Attr& attr)  const -> void {
         size_type count = 0;
-        for(decltype(auto) a : attr) {
+        for(const auto& a : attr) {
           //done when last call failed or we have reached max
           if(pass == false || count >= max) {
             return;
           }
-          as_gear().serialize(pass, sink, std::forward<typename std::decay_t<Attr>::value_type>(a));
+          as_gear().serialize(pass, sink, a);
           ++count;
         }
         if(count < min) {
@@ -180,6 +181,7 @@ namespace spoon { namespace engine {
     constexpr auto inline operator[](FwdGear&& fwd_gear) const {
         return detail::repeat<FwdGear>(std::forward<FwdGear>(fwd_gear));
     }
+
     template<typename FwdGear>
     constexpr auto inline operator[](const FwdGear& fwd_gear) const {
         return detail::repeat<FwdGear>(fwd_gear);
@@ -187,9 +189,6 @@ namespace spoon { namespace engine {
   };
 
 }} //spoon::engine
-
-
-
 
 namespace spoon {
 
