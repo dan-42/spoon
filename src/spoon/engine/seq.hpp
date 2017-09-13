@@ -12,6 +12,7 @@
 
 #include <spoon/engine/base.hpp>
 #include <spoon.hpp>
+#include <spoon/detail/pack_helper.hpp>
 #include <spoon/traits/is_supported_engine_type.hpp>
 
 #include <boost/fusion/sequence/intrinsic/at.hpp>
@@ -23,86 +24,72 @@ namespace spoon { namespace engine {
 
 namespace detail {
 
-  template<int Idx, int Left>
-  struct seq_for_each_dispatch final {
-
-    constexpr static inline void step(auto&& engines, auto&& attributes, const auto& function) {
-
-      decltype(auto) engine = std::get<Idx>(engines);
-      decltype(auto) attr   = boost::fusion::at_c<Idx>(attributes);
-      function(engine, attr);
-      seq_for_each_dispatch<Idx+1, Left-1>::step(engines, attributes, function);
-    }
-  };
-
-
-  /**
-   * empty step
-   */
-  template<int Idx>
-  struct seq_for_each_dispatch<Idx, 0> final {
-    constexpr static inline void step(auto&& engines, auto&& attributes, const auto& function) {  }
-  };
-
-  template<std::size_t Length>
-  constexpr inline void for_each_pair(auto&& engines, auto&& attributes, const auto& function ) {
-    seq_for_each_dispatch<0, Length>::step(engines, attributes, function);
+  ///------------------------------------------------------------------------------------------------------------------
+  template <class F, class Tuple, class FusionSequence, std::size_t... I>
+  constexpr auto for_each_pair(F&& f, const Tuple& t, FusionSequence& s, std::index_sequence<I...>) -> F {
+    return (void)std::initializer_list<int>{(std::ref(f)(t. template  get<I>(), boost::fusion::at_c<I>(s)), 0)...}, f;
   }
 
+  ///------------------------------------------------------------------------------------------------------------------
+  template <class F, class TupleEngines, class FusionSequence>
+  constexpr auto for_each_pair(F&& f, const TupleEngines& t, FusionSequence& s) -> F {
+    return for_each_pair(std::forward<F>(f), t, s, std::make_index_sequence<TupleEngines::number_of_elements>{});
+  }
 
 } //detail
 
 
+///------------------------------------------------------------------------------------------------------------------
+template<typename Attr, typename... Engines>
+struct seq_fusion : gear<seq_fusion<Attr, Engines...>, Attr>{
 
+  using gears_type = spoon::detail::pack_storage<std::index_sequence_for<Engines...>, Engines...>;
+  using number_of_gears = std::integral_constant<size_t, sizeof...(Engines)>;
 
+  ///------------------------------------------------------------------------------------------------------------------
+  const gears_type gears;//must be const not const& so we can use constexpr
 
-  //todo add tag dispatching for fusion and std::tuples
-  template<typename Attr, typename... Engines>
-  struct seq {
-    using attr_type         = Attr;
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename... Ts>
+  constexpr seq_fusion(Ts&& ...e) : gears{std::forward<Ts>(e)...} {
+  }
 
-    using seq_engine_type   = std::tuple<Engines...>;
-    using number_of_engines = std::integral_constant<std::size_t, sizeof...(Engines)>;
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Sink, typename SeqAttr>
+  constexpr inline auto serialize(bool& pass, Sink& sink, const SeqAttr& seq_attr) const -> void {
+    pass = true;
+    const auto handler = [&pass, &sink](auto&& engine, auto&& attr) {
+                           if(pass) {
+                             pass = ::spoon::serialize(sink, engine, attr);
+                           }
+                         };
+    detail::for_each_pair(handler, gears, seq_attr);
+  }
 
-    /**
-     * seq serializer
-     */
-    constexpr inline auto serialize(bool& pass, auto& sink, const auto& seq_attr) const -> void {
-      static_assert(boost::fusion::size<attr_type>(seq_attr) == number_of_engines::value, "ERROR seq sizes does not match attr and engine");
-      pass = true;
-      const auto handler = [&pass, &sink](auto&& engine, auto&& attr) {
-                             if(pass) {
-                               pass = ::spoon::serialize(sink, engine, attr);
-                             }
-                           };
-      detail::for_each_pair<number_of_engines::value>(seq_engine_type{}, seq_attr, handler);
-    }
+  ///------------------------------------------------------------------------------------------------------------------
+  template<typename Iterator, typename SeqAttr>
+  constexpr inline auto deserialize(bool& pass, Iterator& start, const Iterator& end, SeqAttr& seq_attr) const -> void {
+    pass = true;
+    const auto handler = [&pass, &start, &end](const auto& engine, auto& attr) {
+                           if(pass) {
+                             pass = ::spoon::deserialize(start, end, engine, attr);
+                           }
+                         };
+    detail::for_each_pair(handler, gears, seq_attr);
+  }
+};
 
-    /**
-     * seq deserializer
-     */
-    constexpr inline auto deserialize(bool& pass, auto& start, const auto& end, auto& seq_attr) const -> void {
-      static_assert(boost::fusion::size<attr_type>(seq_attr) == number_of_engines::value, "ERROR seq sizes does not match attr and engine");
-      pass          = true;
-      const auto handler = [&pass, &start, &end](const auto& engine, auto& attr) {
-                             if(pass) {
-                               pass = ::spoon::deserialize(start, end, engine, attr);
-                             }
-                           };
-      detail::for_each_pair<number_of_engines::value>(seq_engine_type{}, seq_attr, handler);
-    }
-  };
-
-}}
+}}//spoon::engine
 
 
 namespace spoon {
 
+  ///------------------------------------------------------------------------------------------------------------------
   template<typename Attr, typename... Engines>
-  constexpr inline auto seq(Engines... /*engines*/) noexcept -> engine::seq<Attr, Engines...> {
-    return engine::seq<Attr, Engines...>{};
+  constexpr inline auto seq(const Engines&... engines) noexcept {
+    return engine::seq_fusion<Attr, Engines...>(engines...);
   }
 
-}
+}// spoon
 
 #endif /* SRC_SPOON_ENGINE_SEQ_HPP_ */

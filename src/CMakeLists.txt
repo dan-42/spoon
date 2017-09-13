@@ -20,7 +20,7 @@ if (CMAKE_BUILD_TYPE MATCHES "RELEASE")
 endif()
 
 list (INSERT LIB_SPOON_COMPILE_FLAGS 0
-               # --std=c++14
+                --std=c++14
                 -Wall
                 -Werror
                 -Wno-unused-variable

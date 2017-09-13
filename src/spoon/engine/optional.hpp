@@ -12,6 +12,7 @@
 #define SRC_SPOON_ENGINE_OPTIONAL_HPP_
 
 #include  <spoon/traits/has_call_operator.hpp>
+#include  <spoon/engine/base.hpp>
 #include  <spoon.hpp>
 #include <boost/optional.hpp>
 #include <type_traits>
@@ -64,12 +65,14 @@ namespace spoon { namespace engine {
     };
 
     template<typename Gear>
-    struct optional  : Gear {
+    struct optional  : gear<optional<Gear>, typename Gear::attribute_type>, Gear {
 
-      using attribute_type =  boost::optional<typename Gear::attribute_type>;
+      //using attribute_type =  boost::optional<typename Gear::attribute_type>;
 
-      template<typename FwdGear>
-      constexpr optional(FwdGear&& fwd_gear) : Gear(std::forward<FwdGear>(fwd_gear)) {}
+      constexpr optional(const Gear& fwd_gears) : Gear{fwd_gears} {
+      }
+      constexpr optional(Gear&& fwd_gears) : Gear{std::forward<Gear>(fwd_gears)} {
+      }
 
       constexpr auto& as_gear() const noexcept { return static_cast< const Gear&>(*this); }
 
@@ -82,7 +85,7 @@ namespace spoon { namespace engine {
        *
        */
       template<typename Sink, typename OptAttr>
-      inline auto serialize(bool& pass, Sink& sink, OptAttr&& opt_attr)  const -> void {
+      constexpr inline auto serialize(bool& pass, Sink& sink, OptAttr&& opt_attr)  const -> void {
         if(opt_attr) {
           pass = spoon::serialize(sink, as_gear(), opt_attr.value());
         }
@@ -91,7 +94,7 @@ namespace spoon { namespace engine {
       /** deserialize
        */
       template<typename Iterator, typename OptAttr>
-      inline auto deserialize(bool& pass, Iterator& start, const Iterator& end, OptAttr& opt_attr)  const -> void {
+      constexpr inline auto deserialize(bool& pass, Iterator& start, const Iterator& end, OptAttr& opt_attr)  const -> void {
         using value_type = typename OptAttr::value_type;
         value_type value{};
         if(spoon::deserialize(start, end, as_gear(), value)) {
@@ -109,9 +112,18 @@ namespace spoon { namespace engine {
     constexpr auto inline operator[](FwdGear&& fwd_gear) const {
         return detail::optional<FwdGear>(std::forward<FwdGear>(fwd_gear));
     }
+    template<typename Gear>
+    constexpr auto inline operator[](const Gear& gear) const {
+        return detail::optional<Gear>(gear);
+    }
+
     template<typename FwdGear>
-    constexpr auto inline operator[](const FwdGear& fwd_gear) const {
-        return detail::optional<FwdGear>(fwd_gear);
+    constexpr auto inline operator()(FwdGear&& fwd_gear) const {
+        return detail::optional<FwdGear>(std::forward<FwdGear>(fwd_gear));
+    }
+    template<typename Gear>
+    constexpr auto inline operator()(const Gear& gear) const {
+        return detail::optional<Gear>(gear);
     }
   };
 

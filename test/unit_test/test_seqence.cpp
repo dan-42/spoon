@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_SUITE( test_spoon_seq )
 
 BOOST_AUTO_TEST_CASE( test_spoon_seq_simple ) {
 
-  constexpr auto engine = spoon::seq<pod_type>( spoon::big_endian::bool8, spoon::big_endian::uint32, spoon::big_endian::float64);
+  constexpr auto engine = spoon::seq<pod_type>(spoon::big_endian::bool8, spoon::big_endian::uint32, spoon::big_endian::float64);
   std::vector<uint8_t> binary_data{};
   {
     pod_type var{true, 1337, 3.14};

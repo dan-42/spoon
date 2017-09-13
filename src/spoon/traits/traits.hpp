@@ -13,12 +13,14 @@
 #include <type_traits>
 
 namespace spoon { namespace traits { namespace detail {
-    inline auto serialize_to_sink(auto &sink, auto&& attr) -> bool {
+    template<typename Sink, typename Attr>
+    inline auto serialize_to_sink(Sink &sink, Attr&& attr) -> bool {
       sink.push_back(attr);
       return true;
     }
 
-    inline auto deserialize_from_source(auto& start, const auto& end, auto&attr) -> bool {
+    template<typename Iterator, typename Attr>
+    inline auto deserialize_from_source(Iterator& start, const Iterator& end, Attr&attr) -> bool {
       if(start != end) {
         attr = *start++;
         return true;
@@ -26,7 +28,8 @@ namespace spoon { namespace traits { namespace detail {
       return false;
     }
 
-    inline auto assign_to(auto&& value, auto& attr) -> bool {
+    template<typename Value, typename Attr>
+    inline auto assign_to(Value&& value, Attr& attr) -> bool {
       attr = value;
       return true;
     }

@@ -92,6 +92,11 @@ struct with_attr_provider  : with_attr_provider_base
   }
 
   ///------------------------------------------------------------------------------------------------------------------
+   constexpr with_attr_provider(Gear&& gear, const AttrProvider& attr)
+     : ::spoon::engine::gear<Gear, AttributeType>{std::forward<Gear>(gear)}, AttrProvider{attr} {
+   }
+
+  ///------------------------------------------------------------------------------------------------------------------
   template<typename Sink>
   constexpr inline auto serialize(bool& pass, Sink& sink) const -> void {
     as_gear().serialize(pass, sink, as_provider()());

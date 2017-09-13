@@ -31,11 +31,9 @@ struct is_supported_attr_type <Engine, Attr, typename std::enable_if<std::is_sam
 };
 
 
-
-constexpr inline auto is_supported(const auto& engine, const auto& attr)  -> bool {
-  using engine_type = std::decay_t<decltype(engine)>;
-  using attr_type   = std::decay_t<decltype(attr)>;
-  using supported   = typename is_supported_attr_type<engine_type, attr_type>::type;
+template<class Engine, class Attr>
+constexpr inline auto is_supported(const Engine&, const Attr&)  -> bool {
+  using supported   = typename is_supported_attr_type<Engine, Attr>::type;
   return supported::value;
 }
 

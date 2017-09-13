@@ -10,7 +10,16 @@
 
 #include <mapbox/variant.hpp>
 #include <mapbox/variant_io.hpp>
+
+//#include  <boost/variant.hpp>
+
 #include <spoon.hpp>
+#include <spoon/repeat.hpp>
+#include <spoon/bits.hpp>
+#include <spoon/binary.hpp>
+#include <spoon/seq.hpp>
+#include <spoon/any.hpp>
+#include <spoon/optional.hpp>
 
 #include <boost/fusion/adapted.hpp>
 #include <boost/optional.hpp>
@@ -128,7 +137,8 @@ using npdu_network_priority       = spoon::engine::bits<::npdu_v1_frame::network
 
 
 
-constexpr auto npdu_address = spoon::repeat<std::vector<uint8_t>>(spoon::uint8);
+//constexpr auto npdu_address = spoon::repeat<std::vector<uint8_t>>(spoon::big_endian::uint8);
+constexpr auto npdu_address = spoon::repeat[spoon::big_endian::uint8];
 
 struct npdu_v1_frame_ctx {
   bool has_dest{false};
@@ -143,32 +153,10 @@ struct npdu_v1_frame_ctx {
 
 
 
-namespace spoon { namespace traits {
-
-using npdu_address_engine = std::decay_t<decltype(::engine::npdu_address)>;
-
-template<>
-auto repeate_done_check<npdu_address_engine, ::engine::npdu_v1_frame_ctx>(npdu_address_engine, ::engine::npdu_v1_frame_ctx& ctx, size_t count ) -> bool {
-  return true;
-}
-
-
-template<>
-struct done<npdu_address_engine, ::engine::npdu_v1_frame_ctx>{
-    static auto call(::engine::npdu_v1_frame_ctx& ctx, size_t count) -> bool {
-      return true;
-    }
-};
-
-}}
-
-
-
-
 namespace engine {
 
 
-static constexpr auto npdu_v1_addres_engine = spoon::seq<npdu_v1_addres>(::spoon::uint16, ::engine::npdu_address);
+static constexpr auto npdu_v1_addres_engine = spoon::seq<npdu_v1_addres>(::spoon::big_endian::uint16, ::engine::npdu_address);
 
 
 static constexpr auto npdu_expecting_reply        = spoon::bits_bool<uint8_t, 2>();
@@ -177,11 +165,11 @@ static constexpr auto npdu_has_dst_addr           = spoon::bits_bool<uint8_t, 5>
 static constexpr auto npdu_has_npdu_message_type  = spoon::bits_bool<uint8_t, 7>();
 
 static constexpr ::engine::npdu_network_priority network_priority{};
-static constexpr auto address_engine  = spoon::optional<::npdu_v1_frame::addres_type>(npdu_v1_addres_engine);
-static constexpr auto hop_count       = spoon::optional<::npdu_v1_frame::hop_count_type>(spoon::uint8);
-static constexpr auto message_type    = spoon::optional<::npdu_v1_frame::message_type_type>(spoon::uint8);
-static constexpr auto vendor_id       = spoon::optional<::npdu_v1_frame::vendor_id_type>(spoon::uint16);
-static constexpr auto apdu            = spoon::repeat<::npdu_v1_frame::apdu_type>(spoon::uint8);
+static constexpr auto address_engine  = spoon::optional[npdu_v1_addres_engine];
+static constexpr auto hop_count       = spoon::optional(spoon::big_endian::uint8);
+static constexpr auto message_type    = spoon::optional(spoon::big_endian::uint8);
+static constexpr auto vendor_id       = spoon::optional(spoon::big_endian::uint16);
+static constexpr auto apdu            = spoon::repeat[spoon::big_endian::uint8];
 
 
 ///
@@ -191,44 +179,31 @@ static constexpr auto apdu            = spoon::repeat<::npdu_v1_frame::apdu_type
 
 } //engine
 
-namespace spoon { namespace traits {
-
-using hop_count_engine_type = decltype(::engine::hop_count);
-
-template<>
-constexpr auto expect_optional<>( hop_count_engine_type engine, ::engine::npdu_v1_frame_ctx& ctx) -> bool {
-  return ctx.has_hop_count;
-}
-
-}}
-
 
 namespace engine {
 
-struct npdu_v1_frame_engine : spoon::engine::base {
-
-  using attr_type = npdu_v1_frame;
+struct npdu_v1_frame_engine : spoon::engine::gear<npdu_v1_frame_engine, npdu_v1_frame> {
 
 
 
-
-
-  static constexpr auto seq_engine = spoon::seq<attr_type>(engine::npdu_expecting_reply,
-                                                          network_priority,
-                                                          address_engine,
-                                                          address_engine,
-                                                          hop_count,
-                                                          message_type,
-                                                          vendor_id,
-                                                          apdu);
+  template<typename Sink>
+  constexpr inline auto serialize(bool& pass, Sink& sink, const npdu_v1_frame& attr) const -> void {
 
 
 
-  static constexpr auto npdu_has_src_addr           = spoon::engine::bits<bool, uint8_t, 1, 3>{};
-  static constexpr auto npdu_has_dst_addr           = spoon::engine::bits<bool, uint8_t, 1, 5>{};
-  static constexpr auto npdu_has_npdu_message_type  = spoon::engine::bits<bool, uint8_t, 1, 7>{};
+    constexpr auto seq_engine = spoon::seq<npdu_v1_frame>(
+                                engine::npdu_expecting_reply,
+                                engine::network_priority,
+                                engine::address_engine,
+                                engine::address_engine,
+                                engine::hop_count,
+                                engine::message_type,
+                                engine::vendor_id,
+                                engine::apdu);
 
-  static constexpr inline auto serialize(auto& sink, auto&& attr, auto& ctx) -> bool {
+    constexpr auto npdu_has_src_addr           = spoon::engine::bits<bool, uint8_t, 1, 3>{};
+    constexpr auto npdu_has_dst_addr           = spoon::engine::bits<bool, uint8_t, 1, 5>{};
+    constexpr auto npdu_has_npdu_message_type  = spoon::engine::bits<bool, uint8_t, 1, 7>{};
 
     npdu_v1_frame_ctx c;
     c.has_dest          = (attr.destination)  ? true : false;
@@ -240,40 +215,29 @@ struct npdu_v1_frame_engine : spoon::engine::base {
 
     uint8_t npdu_version{0x01};
     uint8_t control_info{0x00};
-    spoon::serialize(sink, npdu_version, spoon::uint8);
-    spoon::serialize(sink, control_info, spoon::uint8);
+    spoon::serialize(sink, spoon::big_endian::uint8, npdu_version);
+    spoon::serialize(sink, spoon::big_endian::uint8, control_info);
 
 
-    spoon::serialize(sink, c.has_dest , npdu_has_dst_addr);
-    spoon::serialize(sink, c.has_src, npdu_has_src_addr);
+    spoon::serialize(sink, npdu_has_dst_addr, c.has_dest );
+    spoon::serialize(sink, npdu_has_src_addr, c.has_src);
 
-    spoon::serialize(sink, c.has_message_type, npdu_has_npdu_message_type);
+    spoon::serialize(sink, npdu_has_npdu_message_type, c.has_message_type);
 
-    spoon::serialize(sink, attr, seq_engine, ctx);
+    spoon::serialize(sink, seq_engine, attr);
 
-
-
-
-
-
-
-
-    /**
-     *  * prepare ctx
-     *  * call serialze
-     */
-
-    return true;
+    pass = true;
   }
 
-  static constexpr inline auto deserialize(auto& start, const auto& end, auto& attr,  auto& ctx) -> bool {
-    auto itr = start;
-    attr_type value{};
-
-
-    if (!spoon::engine::detail::deserialize_to_attr(value, attr)) { return false; }
-    start = itr;
-    return true;
+  template<typename Iterator>
+  constexpr inline auto deserialize(bool& pass, Iterator& start, const Iterator& end, npdu_v1_frame& attr) -> void {
+//    auto itr = start;
+//    attr_type value{};
+//
+//
+//    if (!spoon::engine::detail::deserialize_to_attr(value, attr)) { return false; }
+//    start = itr;
+//    return true;
   }
 
 
@@ -299,7 +263,7 @@ int main(int argc, char **argv) {
 
   binary_data data{};
 
-  spoon::serialize(data, frame, engine);
+  spoon::serialize(data, engine, frame);
 
   std::cout << " 0x" ;
   for ( const auto& c : data ) {

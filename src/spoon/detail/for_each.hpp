@@ -21,7 +21,7 @@ namespace spoon { namespace detail {
     */
   template<typename F, typename... Ts>
   F for_each_args(F f, Ts&&... a) {
-    return std::initializer_list<int>{(std::ref(f)(std::forward<Ts>(a)),0)...}, f;
+    return (void)std::initializer_list<int>{(std::ref(f)(std::forward<Ts>(a)),0)...}, f;
   }
 
   /**
@@ -29,7 +29,7 @@ namespace spoon { namespace detail {
    */
   template<typename F, typename... Ts>
   F for_each_type(F f) {
-    return std::initializer_list<int>{(std::ref(f)( Ts{}  ),0)...}, f;
+    return (void)std::initializer_list<int>{(std::ref(f)( Ts{}  ),0)...}, f;
   }
 
 
@@ -40,7 +40,7 @@ namespace spoon { namespace detail {
    */
   template <class F, class Tuple, std::size_t... I>
   constexpr auto for_each_element(F&& f, const Tuple& t, std::index_sequence<I...>) -> F {
-    return std::initializer_list<int>{(std::ref(f)(t. template  get<I>()), 0)...}, f;
+    return (void)std::initializer_list<int>{(std::ref(f)(t. template  get<I>()), 0)...}, f;
   }
 
   /**

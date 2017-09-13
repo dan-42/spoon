@@ -50,7 +50,8 @@ BOOST_AUTO_TEST_CASE( test_spoon_optional_simple_empty_optional ) {
 
   {
     my_type my;
-    auto success = spoon::serialize(binary_data, spoon::optional[spoon::big_endian::uint32], my);
+    constexpr auto engine = spoon::optional[spoon::big_endian::uint32];
+    auto success = spoon::serialize(binary_data, engine, my);
     BOOST_TEST(success == true);
 
     BOOST_TEST( binary_data.size() == size_t{ 0 } , "spoon::optional size error ");

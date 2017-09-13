@@ -69,9 +69,9 @@ BOOST_AUTO_TEST_CASE( test_spoon_gear_with_const_value ) {
   constexpr auto my_gear0 = my_gear_type0{};
   constexpr auto my_gear1 = my_gear0(uint32_t{42});
 
-  static_assert(std::is_same<uint32_t, my_gear_type0::attribute_type>::value);
-  static_assert(std::is_same<simple_gear::attribute_type, my_gear_type0::attribute_type>::value);
-  static_assert(std::is_same<decltype(my_gear1)::attribute_type, decltype(my_gear1)::attribute_type>::value);
+  static_assert(std::is_same<uint32_t, my_gear_type0::attribute_type>::value, "");
+  static_assert(std::is_same<simple_gear::attribute_type, my_gear_type0::attribute_type>::value, "");
+  static_assert(std::is_same<decltype(my_gear1)::attribute_type, decltype(my_gear1)::attribute_type>::value, "");
 
   spoon::serialize(sink, my_gear1);
   BOOST_TEST(storage == uint32_t{42});
@@ -90,11 +90,12 @@ BOOST_AUTO_TEST_CASE( test_spoon_gear_with_provider_functor ) {
 
   using my_gear_type0 = simple_gear;
   constexpr auto my_gear0 = my_gear_type0{};
-  constexpr auto my_gear1 = my_gear0([]() -> uint32_t { return 42;});
+  constexpr auto provider = []() -> uint32_t { return 42;};
+  constexpr auto my_gear1 = my_gear0(provider);
 
-  static_assert(std::is_same<uint32_t, my_gear_type0::attribute_type>::value);
-  static_assert(std::is_same<simple_gear::attribute_type, my_gear_type0::attribute_type>::value);
-  static_assert(std::is_same<decltype(my_gear1)::attribute_type, decltype(my_gear1)::attribute_type>::value);
+  static_assert(std::is_same<uint32_t, my_gear_type0::attribute_type>::value, "");
+  static_assert(std::is_same<simple_gear::attribute_type, my_gear_type0::attribute_type>::value, "");
+  static_assert(std::is_same<decltype(my_gear1)::attribute_type, decltype(my_gear1)::attribute_type>::value, "");
 
   BOOST_TEST(spoon::serialize(sink, my_gear1) == true);
   BOOST_TEST(storage == uint32_t{42});

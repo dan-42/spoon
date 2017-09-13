@@ -60,7 +60,7 @@ endfunction(add_new_example)
 
 #add_new_example(poc poc.cpp)
 add_new_example(poc2 poc2.cpp)
-#add_new_example(bacnet_npdu bacnet_npdu.cpp)
+add_new_example(bacnet_npdu bacnet_npdu.cpp)
 
 #add_new_example(continuiation continuiation.cpp)
 

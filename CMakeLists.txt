@@ -9,8 +9,8 @@ include("cmake/HunterGate.cmake")
 #        SHA1 "ccd0a029ef6649223624d6ce39d3016d8e08c6fc"        
 #)
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.19.52.tar.gz"
-    SHA1 "6d3a8135ba62726d810fd8c8c7d97980fa6c3b4a"
+    URL "https://github.com/ruslo/hunter/archive/v0.19.97.tar.gz"
+    SHA1 "d4fc45214ccb23a077b04ba8b50f2e8214b3a3ad"
 )
 project(spoon VERSION 0.0.1)
 enable_testing()

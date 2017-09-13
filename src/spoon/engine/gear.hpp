@@ -61,6 +61,13 @@ struct gear : gear_base {
   }
 
   ///------------------------------------------------------------------------------------------------------------------
+  template<typename AttrProvider,
+  detail::enable_if_has_call_operator_t<AttrProvider, attribute_type>* = nullptr>
+  constexpr inline auto operator()(const AttrProvider& attr_provider) const {
+    return spoon::detail::with_attr_provider<Derived, attribute_type, AttrProvider>{Derived{}, attr_provider};
+  }
+
+  ///------------------------------------------------------------------------------------------------------------------
   template<typename Sink, typename Attr>
   constexpr inline auto serialize(bool& pass, Sink& sink, const Attr& attr) const -> void {
     c_derived().serialize(pass, sink, attr);

@@ -12,6 +12,7 @@
 
 #include <spoon/traits/has_call_operator.hpp>
 #include <spoon/engine/gear.hpp>
+#include <spoon/detail/pack_helper.hpp>
 #include <spoon/detail/for_each.hpp>
 //#include <mapbox/variant.hpp>
 #include <boost/variant.hpp>
@@ -23,63 +24,19 @@
 #include <cassert>
 #include <iostream>
 
-#define SPOON_DETAIL_FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
-
 namespace spoon { namespace engine {
 
 namespace detail {
 
 ///--------------------------------------------------------------------------------------------------------------------
-template<typename... Ts>
-struct duplication_guard : Ts... {
-  constexpr duplication_guard(){};
-};
-
-///--------------------------------------------------------------------------------------------------------------------
-template <std::size_t I, typename T>
-struct _tuple_leaf {
-  constexpr _tuple_leaf(const T& t) : _value{t} {}
-  using type = T;
-  const T& _value;
-};
-
-///--------------------------------------------------------------------------------------------------------------------
-template <typename Is, typename ...Ts>
-struct _tuple_impl;
-
-///--------------------------------------------------------------------------------------------------------------------
-template <std::size_t ...Is, typename ...Ts>
-struct _tuple_impl<std::index_sequence<Is...>, Ts...>  : _tuple_leaf<Is, Ts>...
-{
-  ///------------------------------------------------------------------------------------------------------------------
-  using this_type = _tuple_impl<std::index_sequence<Is...>, Ts...> ;
-  static constexpr size_t number_of_elements = sizeof...(Is);
-
-  ///------------------------------------------------------------------------------------------------------------------
-  constexpr _tuple_impl(const Ts& ...ts) : _tuple_leaf<Is, Ts>{ts}... {
-  }
-
-  ///------------------------------------------------------------------------------------------------------------------
-  template <std::size_t I, typename T>
-  static constexpr const _tuple_leaf<I, T>& _select( const _tuple_leaf<I, T>& leaf) noexcept {
-    return leaf;
-  }
-
-  ///------------------------------------------------------------------------------------------------------------------
-  template <std::size_t I>
-  constexpr const auto& get() const noexcept {
-    // let overload resolution take its course
-    return _select<I>(*this)._value;
-  }
-};
-
-///--------------------------------------------------------------------------------------------------------------------
-constexpr auto any_serialize_when_supported(std::true_type, bool& pass, auto& sink, const auto& attr, const auto& gear) -> void {
+template<typename Sink, typename Attr, typename Gear>
+constexpr auto any_serialize_when_supported(std::true_type, bool& pass, Sink& sink, const Attr& attr, const Gear& gear) -> void {
   gear.serialize(pass, sink, attr);
 }
 
 ///--------------------------------------------------------------------------------------------------------------------
-constexpr auto any_serialize_when_supported(std::false_type, bool& , auto& , const auto&, const auto& ) -> void {
+template<typename Sink, typename Attr, typename Gear>
+constexpr auto any_serialize_when_supported(std::false_type, bool& , Sink& , const Attr&, const Gear& ) -> void {
 }
 
 ///--------------------------------------------------------------------------------------------------------------------
@@ -126,7 +83,7 @@ template<typename VariantAttr, typename... Gears>
 struct any : gear< any<VariantAttr, Gears...>,  VariantAttr>{
 
   ///------------------------------------------------------------------------------------------------------------------
-  using gears_type = detail::_tuple_impl<std::index_sequence_for<Gears...>, Gears...>;
+  using gears_type = spoon::detail::pack_storage<std::index_sequence_for<Gears...>, Gears...>;
   using number_of_gears = std::integral_constant<size_t, sizeof...(Gears)>;
 
   ///------------------------------------------------------------------------------------------------------------------
@@ -187,7 +144,7 @@ namespace spoon {
 ///--------------------------------------------------------------------------------------------------------------------
 template<typename VariantAttr, typename... Gears>
 constexpr auto any(const Gears&... gears) -> spoon::engine::any<VariantAttr, Gears...> {
-  constexpr ::spoon::engine::detail::duplication_guard<std::decay_t<Gears>...> guard_type{};
+  constexpr ::spoon::detail::duplication_guard<std::decay_t<Gears>...> guard_type{};
   return spoon::engine::any<VariantAttr, Gears...> {gears...};
 }
 
